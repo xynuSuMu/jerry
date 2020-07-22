@@ -1,4 +1,4 @@
-package server;
+package client;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
@@ -9,30 +9,33 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import server.JerryServer;
 
 import java.util.Date;
 
 /**
  * @author 陈龙
  * @version 1.0
- * @date 2020-07-22 15:45
+ * @date 2020-07-22 19:12
  */
-public class JerryServer {
+public class JerryClient {
 
     private Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    public void bind(int port) {
-        //事件驱动
-        EventLoopGroup boss = new NioEventLoopGroup();
-        EventLoopGroup worker = new NioEventLoopGroup();
-        //
+    public void connect(String host, int port) {
+        EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
         try {
             ServerBootstrap bootstrap = new ServerBootstrap();
             bootstrap
-                    .group(boss, worker)
+                    .group(eventLoopGroup)
                     .channel(NioServerSocketChannel.class)
                     .option(ChannelOption.SO_BACKLOG, 1024)
-                    .childHandler(new ChildChannelHandler());
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
+
+                        protected void initChannel(SocketChannel socketChannel) throws Exception {
+                            socketChannel.pipeline().addLast();
+                        }
+                    });
 
             //绑定
             ChannelFuture channelFuture = bootstrap.bind(port).sync();
@@ -41,19 +44,11 @@ public class JerryServer {
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
-            boss.shutdownGracefully();
-            worker.shutdownGracefully();
+            eventLoopGroup.shutdownGracefully();
         }
     }
 
-    private class ChildChannelHandler extends ChannelInitializer<SocketChannel> {
-
-        protected void initChannel(SocketChannel socketChannel) {
-            socketChannel.pipeline().addLast(new JerryChannelHandlerAdapter());
-        }
-    }
-
-    private class JerryChannelHandlerAdapter extends ChannelHandlerAdapter {
+    private class JerryClientHandlerAdapter extends ChannelHandlerAdapter {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 //            super.channelRead(ctx, msg);
