@@ -1,5 +1,6 @@
 package client;
 
+import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -7,6 +8,7 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import server.JerryServer;
@@ -25,20 +27,20 @@ public class JerryClient {
     public void connect(String host, int port) {
         EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
         try {
-            ServerBootstrap bootstrap = new ServerBootstrap();
+            Bootstrap bootstrap = new Bootstrap();
             bootstrap
                     .group(eventLoopGroup)
-                    .channel(NioServerSocketChannel.class)
-                    .option(ChannelOption.SO_BACKLOG, 1024)
-                    .childHandler(new ChannelInitializer<SocketChannel>() {
+                    .channel(NioSocketChannel.class)
+                    .option(ChannelOption.TCP_NODELAY, true)
+                    .handler(new ChannelInitializer<SocketChannel>() {
 
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
-                            socketChannel.pipeline().addLast();
+                            socketChannel.pipeline().addLast(new JerryClientHandlerAdapter());
                         }
                     });
 
             //绑定
-            ChannelFuture channelFuture = bootstrap.bind(port).sync();
+            ChannelFuture channelFuture = bootstrap.connect(host,port).sync();
             //等待服务关闭
             channelFuture.channel().closeFuture().sync();
         } catch (InterruptedException e) {
@@ -49,6 +51,15 @@ public class JerryClient {
     }
 
     private class JerryClientHandlerAdapter extends ChannelHandlerAdapter {
+
+        private final ByteBuf byteBuf;
+
+        public JerryClientHandlerAdapter() {
+            byte[] req = "query".getBytes();
+            byteBuf = Unpooled.buffer(req.length);
+            byteBuf.writeBytes(req);
+        }
+
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 //            super.channelRead(ctx, msg);
@@ -57,19 +68,22 @@ public class JerryClient {
             byteBuf.readBytes(bytes);
             String body = new String(bytes, "UTF-8");
             logger.info(body);
-            String currentTime = "query".equals(body) ? new Date().toString() : "BAD REQUEST!";
-            ByteBuf resp = Unpooled.copiedBuffer(currentTime.getBytes());
-            ctx.write(resp);
+            System.out.println(body);
         }
 
         @Override
-        public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-            ctx.flush();
+        public void channelActive(ChannelHandlerContext ctx) throws Exception {
+            ctx.writeAndFlush(byteBuf);
         }
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+            logger.info(cause.getMessage());
             ctx.close();
         }
+    }
+
+    public static void main(String[] args) {
+        new JerryClient().connect("127.0.0.1", 8088);
     }
 }
