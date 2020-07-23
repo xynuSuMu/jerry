@@ -11,5 +11,6 @@ public class Main {
         //启动服务
         int port = 8088;
         new JerryServer().bind(port);
+        //加载Web项目
     }
 }

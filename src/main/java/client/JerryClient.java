@@ -62,12 +62,11 @@ public class JerryClient {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-//            super.channelRead(ctx, msg);
             ByteBuf byteBuf = (ByteBuf) msg;
             byte[] bytes = new byte[byteBuf.readableBytes()];
             byteBuf.readBytes(bytes);
             String body = new String(bytes, "UTF-8");
-            logger.info(body);
+            logger.info("客户端接受,{}",body);
             System.out.println(body);
         }
 

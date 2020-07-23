@@ -56,14 +56,20 @@ public class JerryServer {
     private class JerryChannelHandlerAdapter extends ChannelHandlerAdapter {
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-//            super.channelRead(ctx, msg);
             ByteBuf byteBuf = (ByteBuf) msg;
             byte[] bytes = new byte[byteBuf.readableBytes()];
             byteBuf.readBytes(bytes);
             String body = new String(bytes, "UTF-8");
-            logger.info(body);
-            String currentTime = "query".equals(body) ? new Date().toString() : "BAD REQUEST!";
-            ByteBuf resp = Unpooled.copiedBuffer(currentTime.getBytes());
+            logger.info("服务端接受,{}", body);
+//            String currentTime;
+//            if ("query".equals(body)) {
+//                System.out.println(false);
+//                currentTime = new Date().toString();
+//            } else {
+//                System.out.println(true);
+//                currentTime = "BAD REQUEST!";
+//            }
+            ByteBuf resp = Unpooled.copiedBuffer(("服务端返回:" + body).getBytes());
             ctx.write(resp);
         }
 
