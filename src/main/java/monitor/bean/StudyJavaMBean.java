@@ -5,7 +5,11 @@ package monitor.bean;
  * @version 1.0
  * @date 2020-07-23 13:45
  */
-public interface JerryMBean {
+public interface StudyJavaMBean {
+
+
     String getApplicationName();
+
+
     void closeJerryMBean();
 }

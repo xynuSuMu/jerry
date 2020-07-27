@@ -8,6 +8,9 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.multipart.Attribute;
+import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder;
+import io.netty.handler.codec.http.multipart.InterfaceHttpData;
 import io.netty.handler.stream.ChunkedFile;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.CharsetUtil;
@@ -20,6 +23,9 @@ import java.io.FileNotFoundException;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 
@@ -60,15 +66,19 @@ public class HttpServer {
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
-                            socketChannel.pipeline().addLast("http-decoder", new HttpRequestDecoder());
-                            socketChannel.pipeline().addLast("http-aggregator", new HttpObjectAggregator(65536));
-                            socketChannel.pipeline().addLast("http-encoder", new HttpRequestEncoder());
-                            socketChannel.pipeline().addLast("http-chunked", new ChunkedWriteHandler());
-                            socketChannel.pipeline().addLast("fileServerHandler", new FileHandler(url));
+//                            socketChannel.pipeline().addLast("http-decoder", new HttpRequestDecoder());
+//                            socketChannel.pipeline().addLast("http-aggregator", new HttpObjectAggregator(65536));
+//                            socketChannel.pipeline().addLast("http-encoder", new HttpRequestEncoder());
+//                            socketChannel.pipeline().addLast("http-chunked", new ChunkedWriteHandler());
+//                            socketChannel.pipeline().addLast("fileServerHandler", new FileHandler(url));
+                            ChannelPipeline pipeline = socketChannel.pipeline();
+                            pipeline.addLast(new HttpServerCodec());// http 编解码
+                            pipeline.addLast("httpAggregator", new HttpObjectAggregator(512 * 1024)); // http 消息聚合器                                                                     512*1024为接收的最大contentlength
+                            pipeline.addLast(new FileHandler(url));// 请求处理器
                         }
                     });
             //绑定
-            ChannelFuture channelFuture = serverBootstrap.bind("127.0.0.1", port).sync();
+            ChannelFuture channelFuture = serverBootstrap.bind(port).sync();
             logger.info("服务启动:{}", port);
             //等待服务关闭
             channelFuture.channel().closeFuture().sync();
@@ -84,6 +94,7 @@ public class HttpServer {
         new HttpServer().run(8088, "/src");
     }
 
+
     static class FileHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
         private final String url;
@@ -98,15 +109,34 @@ public class HttpServer {
                 sendError(channelHandlerContext, BAD_REQUEST);
                 return;
             }
-            if (fullHttpRequest.getMethod() != GET) {
-                sendError(channelHandlerContext, METHOD_NOT_ALLOWED);
-                return;
+//            if (fullHttpRequest.getMethod() != GET) {
+//                sendError(channelHandlerContext, METHOD_NOT_ALLOWED);
+//                return;
+//            }
+            if (HttpMethod.GET == fullHttpRequest.getMethod()) {
+                // 是GET请求
+                QueryStringDecoder decoder = new QueryStringDecoder(fullHttpRequest.getUri());
+                decoder.parameters().entrySet().forEach(entry -> {
+                    // entry.getValue()是一个List, 只取第一个元素
+                    System.out.println((entry.getKey() + ":" + entry.getValue().get(0)));
+                });
+            }
+
+            if (fullHttpRequest.getMethod() == HttpMethod.POST) {
+                ByteBuf jsonBuf = fullHttpRequest.content();
+                String jsonStr = jsonBuf.toString(CharsetUtil.UTF_8);
+                System.out.println(jsonStr);
             }
             final String url = fullHttpRequest.getUri();
+            System.out.println(url);
+            if (url.endsWith("favicon.ico")) {
+                return;
+            }
             final String path = sanitizeUri(url);
             if (path == null) {
                 sendError(channelHandlerContext, FORBIDDEN);
             }
+            System.out.println(path);
             File file = new File(path);
             // 如果文件不存在或者是系统隐藏文件，则构造404 异常返回
             if (file.isHidden() || !file.exists()) {
@@ -120,56 +150,56 @@ public class HttpServer {
                 } else {
                     sendRedirect(channelHandlerContext, url + '/');
                 }
-                return;
+//                return;
             }
-            // 用户在浏览器上第几超链接直接打开或者下载文件，合法性监测
-            if (!file.isFile()) {
-                sendError(channelHandlerContext, HttpResponseStatus.FORBIDDEN);
-                return;
-            }
-            // IE下才会打开文件，其他浏览器都是直接下载
-            // 随机文件读写类以读的方式打开文件
-            RandomAccessFile randomAccessFile = null;
-            try {
-                randomAccessFile = new RandomAccessFile(file, "r");
-                // 以只读的方式打开文件
-            } catch (FileNotFoundException fnfe) {
-                sendError(channelHandlerContext, NOT_FOUND);
-                return;
-            }
-            // 获取文件长度，构建成功的http应答消息
-            long fileLength = randomAccessFile.length();
-            HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
-            setContentLength(response, fileLength);
-            setContentTypeHeader(response, file);
-            if (isKeepAlive(fullHttpRequest)) {
-                response.headers().set(CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
-            }
-            channelHandlerContext.write(response);
-            ChannelFuture sendFileFuture;
-            // 同过netty的村可多File对象直接将文件写入到发送缓冲区，最后为sendFileFeature增加GenericFeatureListener，
-            // 如果发送完成，打印“Transfer complete”
-            sendFileFuture = channelHandlerContext.write(new ChunkedFile(randomAccessFile, 0, fileLength, 8192), channelHandlerContext.newProgressivePromise());
-            sendFileFuture.addListener(new ChannelProgressiveFutureListener() {
-                @Override
-                public void operationProgressed(ChannelProgressiveFuture future, long progress, long total) {
-                    if (total < 0) {
-                        // total unknown
-                        System.err.println("Transfer progress: " + progress);
-                    } else {
-                        System.err.println("Transfer progress: " + progress + " / " + total);
-                    }
-                }
-
-                @Override
-                public void operationComplete(ChannelProgressiveFuture future) throws Exception {
-                    System.out.println("Transfer complete.");
-                }
-            });
-            ChannelFuture lastContentFuture = channelHandlerContext.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
-            if (!isKeepAlive(fullHttpRequest)) {
-                lastContentFuture.addListener(ChannelFutureListener.CLOSE);
-            }
+//            // 用户在浏览器上第几超链接直接打开或者下载文件，合法性监测
+//            if (!file.isFile()) {
+//                sendError(channelHandlerContext, HttpResponseStatus.FORBIDDEN);
+//                return;
+//            }
+//            // IE下才会打开文件，其他浏览器都是直接下载
+//            // 随机文件读写类以读的方式打开文件
+//            RandomAccessFile randomAccessFile = null;
+//            try {
+//                randomAccessFile = new RandomAccessFile(file, "r");
+//                // 以只读的方式打开文件
+//            } catch (FileNotFoundException fnfe) {
+//                sendError(channelHandlerContext, NOT_FOUND);
+//                return;
+//            }
+//            // 获取文件长度，构建成功的http应答消息
+//            long fileLength = randomAccessFile.length();
+//            HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
+//            setContentLength(response, fileLength);
+//            setContentTypeHeader(response, file);
+//            if (isKeepAlive(fullHttpRequest)) {
+//                response.headers().set(CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+//            }
+//            channelHandlerContext.write(response);
+//            ChannelFuture sendFileFuture;
+//            // 同过netty的村可多File对象直接将文件写入到发送缓冲区，最后为sendFileFeature增加GenericFeatureListener，
+//            // 如果发送完成，打印“Transfer complete”
+//            sendFileFuture = channelHandlerContext.write(new ChunkedFile(randomAccessFile, 0, fileLength, 8192), channelHandlerContext.newProgressivePromise());
+//            sendFileFuture.addListener(new ChannelProgressiveFutureListener() {
+//                @Override
+//                public void operationProgressed(ChannelProgressiveFuture future, long progress, long total) {
+//                    if (total < 0) {
+//                        // total unknown
+//                        System.err.println("Transfer progress: " + progress);
+//                    } else {
+//                        System.err.println("Transfer progress: " + progress + " / " + total);
+//                    }
+//                }
+//
+//                @Override
+//                public void operationComplete(ChannelProgressiveFuture future) throws Exception {
+//                    System.out.println("Transfer complete.");
+//                }
+//            });
+//            ChannelFuture lastContentFuture = channelHandlerContext.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
+//            if (!isKeepAlive(fullHttpRequest)) {
+//                lastContentFuture.addListener(ChannelFutureListener.CLOSE);
+//            }
         }
 
         @Override
@@ -183,8 +213,6 @@ public class HttpServer {
         private static final Pattern ALLOWED_FILE_NAME = Pattern.compile("[A-Za-z0-9][-_A-Za-z0-9\\.]*");
 
         private static void sendListing(ChannelHandlerContext ctx, File dir) {
-            FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, OK);
-            response.headers().set(CONTENT_TYPE, "text/html; charset=UTF-8");
             StringBuilder buf = new StringBuilder();
             String dirPath = dir.getPath();
             buf.append("<!DOCTYPE html>\r\n");
@@ -213,9 +241,13 @@ public class HttpServer {
                 buf.append("</a></li>\r\n");
             }
             buf.append("</ul></body></html>\r\n");
-            ByteBuf buffer = Unpooled.copiedBuffer(buf, CharsetUtil.UTF_8);
-            response.content().writeBytes(buffer);
-            buffer.release();
+//            ByteBuf buffer = Unpooled.copiedBuffer(buf, CharsetUtil.UTF_8);
+            FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, OK, Unpooled.copiedBuffer(buf, CharsetUtil.UTF_8));
+            response.headers().set(CONTENT_TYPE, "text/html; charset=UTF-8");
+
+//            response.content().writeBytes(buffer);
+//            buffer.release();
+//            ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
             ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
         }
 

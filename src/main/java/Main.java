@@ -8,9 +8,10 @@ import server.JerryServer;
  */
 public class Main {
     public static void main(String[] args) {
+        //加载类
+
         //启动服务
-        int port = 8088;
-        new JerryServer().bind(port);
-        //加载Web项目
+        new JerryServer().start(8088);
+
     }
 }
