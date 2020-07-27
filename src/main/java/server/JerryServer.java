@@ -12,6 +12,8 @@ import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import server.modal.ParamModal;
+import web.WebApp1;
 
 /**
  * @author 陈龙
@@ -61,43 +63,39 @@ public class JerryServer {
         @Override
         protected void messageReceived(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
             String url = fullHttpRequest.getUri();
+            ParamModal paramModal = new ParamModal();
+            paramModal.setHttpMethod(fullHttpRequest.getMethod());
+            //
             if (fullHttpRequest.getMethod() == HttpMethod.GET) {
                 QueryStringDecoder decoder = new QueryStringDecoder(fullHttpRequest.getUri());
                 decoder.parameters().entrySet().forEach(entry -> {
                     logger.info("请求Key:{},Value:{}", entry.getKey(), entry.getValue().get(0));
+                    paramModal.getParam().put(entry.getKey(), entry.getValue().get(0));
                 });
                 url = url.split("\\?")[0];
             } else if (fullHttpRequest.getMethod() == HttpMethod.POST) {
                 ByteBuf jsonBuf = fullHttpRequest.content();
                 String jsonStr = jsonBuf.toString(CharsetUtil.UTF_8);
                 logger.info("消息体,{}", jsonStr);
+                paramModal.getParam().put("JSON", jsonStr);
             } else {
                 logger.info("暂不支持{}请求", fullHttpRequest.getMethod());
                 sendError(ctx, HttpResponseStatus.METHOD_NOT_ALLOWED);
             }
             logger.info("请求URL,{}", url);
-            searchApplication(ctx, url);
+            paramModal.setUrl(url);
+            searchApplication(ctx, paramModal);
         }
 
         private void sendError(ChannelHandlerContext ctx, HttpResponseStatus status) {
-
             FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status,
                     Unpooled.copiedBuffer("Failure: " + status.toString() + "\r\n", CharsetUtil.UTF_8));
             response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8");
             ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
         }
 
-        private void searchApplication(ChannelHandlerContext ctx, String url) {
-            String res = "相应" + url;
-            //do-sometiong
-//            int status = 200;
-            HttpResponseStatus status = HttpResponseStatus.OK;
-            JSONObject responseJson = new JSONObject();
-            responseJson.put("code", status.code());
-            FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status,
-                    Unpooled.copiedBuffer(responseJson.toString(), CharsetUtil.UTF_8));
-            response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "text/json; charset=UTF-8");
-            ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+        private void searchApplication(ChannelHandlerContext ctx, ParamModal modal) {
+            ctx.writeAndFlush(new WebApp1().response(modal)).addListener(ChannelFutureListener.CLOSE);
         }
     }
 }

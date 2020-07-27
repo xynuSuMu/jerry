@@ -1,12 +1,18 @@
 package web;
 
+import annotation.JerryController;
+import annotation.JerryRequestMapping;
+
 /**
  * @author 陈龙
  * @version 1.0
- * @date 2020-07-23 10:38
+ * @date 2020-07-27 16:20
  */
+@JerryController
 public class Test {
-    public void print() {
-        System.out.println("Hello World!");
+
+    @JerryRequestMapping
+    public void sys() {
+
     }
 }

@@ -9,8 +9,6 @@
         <module name="jerry" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="jerry" target="1.5" />
-    </bytecodeTargetLevel>
+    <bytecodeTargetLevel target="8" />
   </component>
 </project>

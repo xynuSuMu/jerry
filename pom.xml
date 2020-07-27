@@ -33,5 +33,14 @@
             <artifactId>fastjson</artifactId>
             <version>1.2.72</version>
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.javassist/javassist -->
+        <dependency>
+            <groupId>org.javassist</groupId>
+            <artifactId>javassist</artifactId>
+            <version>3.27.0-GA</version>
+        </dependency>
+
+
     </dependencies>
 </project>
