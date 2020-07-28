@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
  * @date 2020-07-27 16:20
  */
 @JerryController
+@JerryRequestMapping("/test")
 public class Test {
 
     private Logger logger = LoggerFactory.getLogger(this.getClass());

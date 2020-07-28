@@ -80,7 +80,7 @@ public class JerryServer {
                 String jsonStr = jsonBuf.toString(CharsetUtil.UTF_8);
                 logger.info("消息体,{}", jsonStr);
                 paramModal.getParam().put("JSON", jsonStr);
-            } else {
+            } else if (fullHttpRequest.getMethod() != HttpMethod.GET){
                 logger.info("暂不支持{}请求", fullHttpRequest.getMethod());
                 sendError(ctx, HttpResponseStatus.METHOD_NOT_ALLOWED);
                 return;
