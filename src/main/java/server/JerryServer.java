@@ -1,6 +1,5 @@
 package server;
 
-import com.alibaba.fastjson.JSONObject;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -13,7 +12,7 @@ import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import server.modal.ParamModal;
-import web.WebApp1;
+import web.WebAppManager;
 
 /**
  * @author 陈龙
@@ -63,17 +62,20 @@ public class JerryServer {
         @Override
         protected void messageReceived(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
             String url = fullHttpRequest.getUri();
+            //屏蔽/favicon.ico
+            if (url.endsWith("/favicon.ico")) {
+                return;
+            }
+            //组装请求参数
             ParamModal paramModal = new ParamModal();
             paramModal.setHttpMethod(fullHttpRequest.getMethod());
-            //
-            if (fullHttpRequest.getMethod() == HttpMethod.GET) {
-                QueryStringDecoder decoder = new QueryStringDecoder(fullHttpRequest.getUri());
-                decoder.parameters().entrySet().forEach(entry -> {
-                    logger.info("请求Key:{},Value:{}", entry.getKey(), entry.getValue().get(0));
-                    paramModal.getParam().put(entry.getKey(), entry.getValue().get(0));
-                });
-                url = url.split("\\?")[0];
-            } else if (fullHttpRequest.getMethod() == HttpMethod.POST) {
+            //请求类型
+            QueryStringDecoder decoder = new QueryStringDecoder(fullHttpRequest.getUri());
+            decoder.parameters().entrySet().forEach(entry -> {
+                logger.info("请求URL携带的参数:Key:{},Value:{}", entry.getKey(), entry.getValue().get(0));
+                paramModal.getParam().put(entry.getKey(), entry.getValue().get(0));
+            });
+            if (fullHttpRequest.getMethod() == HttpMethod.POST) {
                 ByteBuf jsonBuf = fullHttpRequest.content();
                 String jsonStr = jsonBuf.toString(CharsetUtil.UTF_8);
                 logger.info("消息体,{}", jsonStr);
@@ -81,9 +83,15 @@ public class JerryServer {
             } else {
                 logger.info("暂不支持{}请求", fullHttpRequest.getMethod());
                 sendError(ctx, HttpResponseStatus.METHOD_NOT_ALLOWED);
+                return;
+            }
+            //截取URL
+            if (url.contains("?")) {
+                url = url.split("\\?")[0];
             }
             logger.info("请求URL,{}", url);
             paramModal.setUrl(url);
+            //寻找相关应用接口
             searchApplication(ctx, paramModal);
         }
 
@@ -95,7 +103,14 @@ public class JerryServer {
         }
 
         private void searchApplication(ChannelHandlerContext ctx, ParamModal modal) {
-            ctx.writeAndFlush(new WebApp1().response(modal)).addListener(ChannelFutureListener.CLOSE);
+            //TODO:WebApp1后续改进方向：实现应用隔离
+            try {
+                ctx.writeAndFlush(new WebAppManager().response(modal)).addListener(ChannelFutureListener.CLOSE);
+            } catch (Exception e) {
+                logger.info("e", e);
+                e.printStackTrace();
+            }
+            sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }
