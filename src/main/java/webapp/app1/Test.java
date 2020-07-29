@@ -1,5 +1,6 @@
-package webapp;
+package webapp.app1;
 
+import annotation.JerryAutowired;
 import annotation.JerryController;
 import annotation.JerryRequestMapping;
 import annotation.RequestMethod;
@@ -16,17 +17,23 @@ import org.slf4j.LoggerFactory;
 @JerryRequestMapping("/test")
 public class Test {
 
+    @JerryAutowired()
+    private TestService testService;
+
+    @JerryAutowired(name = "test")
+    private TestServiceInter testService2;
+
     private Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @JerryRequestMapping(value = "/sys", method = RequestMethod.GET)
     public String sys(String url) {
         logger.info("我是测试数据，😄哈哈" + url);
-        return "12";
+        return testService.sys();
     }
 
     @JerryRequestMapping(value = "/sys2", method = RequestMethod.POST)
     public String sys2(String code, String email, TestView testView, Integer x) {
         logger.info("我是测试数据，😄哈哈2、" + x + "->" + code + "->" + email + "->" + JSONObject.toJSONString(testView));
-        return "13";
+        return testService2.sys();
     }
 }

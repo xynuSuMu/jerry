@@ -80,7 +80,6 @@ public class JerryHandlerMethod {
         Object o1 = null;
         try {
             o1 = method.invoke(o, params);
-            System.out.println(o1);
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         } catch (InvocationTargetException e) {
