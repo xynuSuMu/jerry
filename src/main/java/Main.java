@@ -12,6 +12,7 @@ import java.io.*;
  */
 public class Main {
 
+    private static String url = "/Users/chenlong/Documents/xcx/dream/jerry/src/main/java/webapp";
 
     public static void main(String[] args) throws Exception {
         String pkg = "";
@@ -24,4 +25,5 @@ public class Main {
         new JerryServer().start(8088);
     }
 
+    //首先判断webApp下有几个jar包，其次分配类加载器加载，根据URL和类加载器找到响应的请求方法，顶层核心类不能打破双亲委派
 }

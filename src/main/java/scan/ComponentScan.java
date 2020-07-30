@@ -42,7 +42,7 @@ public class ComponentScan {
         scanComponent(new File(searchPath));
         //处理请求
         handlerController();
-        //处理接口
+        //处理接口注入
         handlerInterface();
         //销毁
         cls = null;
