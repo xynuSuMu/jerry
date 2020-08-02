@@ -9,10 +9,14 @@ import exception.JerryException;
 import handler.JerryHandlerMethod;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 /**
  * @author 陈龙
@@ -39,7 +43,12 @@ public class ComponentScan {
     public void scanComponent(String url, String pkg) throws Exception {
         //然后把classpath和basePack合并
         String searchPath = url + pkg;
-        scanComponent(new File(searchPath));
+        System.out.println("searchPath=" + searchPath);
+        if (searchPath.endsWith("jar")) {
+            findClassJar(searchPath);
+        } else {
+            scanComponent(new File(searchPath));
+        }
         //处理请求
         handlerController();
         //处理接口注入
@@ -49,11 +58,48 @@ public class ComponentScan {
         entries = null;
     }
 
+    private void findClassJar(final String path) throws Exception {
+        JarFile jarFile = null;
+        try {
+            jarFile = new JarFile(new File(path));
+        } catch (IOException e) {
+            throw new RuntimeException("未找到策略资源");
+        }
+
+        Enumeration<JarEntry> jarEntries = jarFile.entries();
+        while (jarEntries.hasMoreElements()) {
+            JarEntry jarEntry = jarEntries.nextElement();
+            String jarEntryName = jarEntry.getName();
+            if (jarEntryName.endsWith(".class")) {
+                //如果是class文件我们就放入我们的集合中。
+                System.out.println("==" + jarEntryName);
+                String pkg = jarEntryName
+                        .replace(url, "")
+                        .replace("/", ".");
+                pkg = pkg.substring(0, pkg.length() - 6);
+                Class<?> clazz = Class.forName(pkg);
+                //如果是存在Controller注解-暂存
+                JerryController jerryController = clazz.getAnnotation(JerryController.class);
+                if (jerryController != null) {
+                    cls.add(clazz);
+                }
+                JerryService jerryService = clazz.getAnnotation(JerryService.class);
+                if (jerryService != null) {
+                    String value = jerryService.value();
+                    handlerService(clazz, value);
+                }
+            }
+
+        }
+
+    }
+
     public void scanComponent(File file) throws Exception {
         if (file.isDirectory()) {//文件夹
             //文件夹我们就递归
             File[] files = file.listFiles();
             for (File f1 : files) {
+                System.out.println(f1.getName() + "==name");
                 scanComponent(f1);
             }
         } else {
@@ -142,9 +188,11 @@ public class ComponentScan {
                                     method.getReturnType(),
                                     jerryRequestMapping.method());
                     String requestMapping = requestMethodUrl + jerryRequestMapping.value();
+                    System.out.println(requestMapping);
                     if (jerryContext.getMethod(requestMapping) != null) {
                         throw new JerryException("requestMapping重复:" + requestMapping);
                     } else {
+                        System.out.println("注入:" + requestMapping);
                         jerryContext.setControllerMethod(requestMapping,
                                 jerryHandlerMethod);
                     }

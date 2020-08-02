@@ -1,5 +1,6 @@
 package handler;
 
+import annotation.Param;
 import annotation.RequestMethod;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -42,6 +43,8 @@ public class JerryHandlerMethod {
     public static HttpResponseModal handlerRequestMethod(ParamModal modal) {
         HttpResponseModal httpResponseModal = new HttpResponseModal();
         JerryHandlerMethod jerryHandlerMethod = jerryContext.getMethod(modal.getUrl());
+        System.out.println("jerryHandlerMethod===");
+        System.out.println(jerryHandlerMethod);
         if (jerryHandlerMethod == null) {
             httpResponseModal.setResponseStatus(HttpResponseStatus.NOT_FOUND);
             return httpResponseModal;
@@ -53,6 +56,7 @@ public class JerryHandlerMethod {
             httpResponseModal.setResponseStatus(HttpResponseStatus.METHOD_NOT_ALLOWED);
             return httpResponseModal;
         }
+        System.out.println(JSONObject.toJSONString(modal));
         Object[] params = new Object[jerryHandlerMethod.parameterTypes.length];
         if (jerryHandlerMethod.requestMethods == RequestMethod.GET) {
             int i = 0;
@@ -63,16 +67,22 @@ public class JerryHandlerMethod {
         } else if (jerryHandlerMethod.requestMethods == RequestMethod.POST) {
             int i = 0;
             for (Parameter parameter : jerryHandlerMethod.parameterTypes) {
-                //对象
-                if (parameter.getType() != String.class && !parameter.getType().isPrimitive() && !isWrapClass(parameter.getType())) {
-                    String jsonStr = modal.getParam().get("JSON").toString();
-                    Object json = JSONObject.parse(jsonStr);
-                    params[i++] = JSONObject.toJavaObject((JSON) json, parameter.getType());
-                } else {//基本数据类型+String
-                    if (parameter.getType() == Integer.class || parameter.getType() == int.class) {
-                        params[i++] = Integer.parseInt(modal.getParam().get(parameter.getName()).toString());
-                    } else {
-                        params[i++] = parameter.getType().cast(modal.getParam().get(parameter.getName()));
+                Param param;
+                if ((param = parameter.getDeclaredAnnotation(Param.class)) != null) {
+                    System.out.println("parameter=" + parameter.getName());
+                    String p = param.value();
+                    System.out.println("parameter=" + p);
+                    //对象
+                    if (parameter.getType() != String.class && !parameter.getType().isPrimitive() && !isWrapClass(parameter.getType())) {
+                        String jsonStr = modal.getParam().get("JSON").toString();
+                        Object json = JSONObject.parse(jsonStr);
+                        params[i++] = JSONObject.toJavaObject((JSON) json, parameter.getType());
+                    } else {//基本数据类型+String
+                        if (parameter.getType() == Integer.class || parameter.getType() == int.class) {
+                            params[i++] = Integer.parseInt(modal.getParam().get(p).toString());
+                        } else {
+                            params[i++] = parameter.getType().cast(modal.getParam().get(p));
+                        }
                     }
                 }
             }

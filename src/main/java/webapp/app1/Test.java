@@ -1,9 +1,6 @@
 package webapp.app1;
 
-import annotation.JerryAutowired;
-import annotation.JerryController;
-import annotation.JerryRequestMapping;
-import annotation.RequestMethod;
+import annotation.*;
 import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +29,7 @@ public class Test {
     }
 
     @JerryRequestMapping(value = "/sys2", method = RequestMethod.POST)
-    public String sys2(String code, String email, TestView testView, Integer x) {
+    public String sys2(@Param(value = "code") String code, @Param(value = "email") String email,@Param(value = "JSON") TestView testView,@Param(value = "x") Integer x) {
         logger.info("我是测试数据，😄哈哈2、" + x + "->" + code + "->" + email + "->" + JSONObject.toJSONString(testView));
         return testService2.sys();
     }
