@@ -22,10 +22,6 @@ public class Main {
 //        String url = this.getClass().getResource("/").getPath();
         String url = this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
         pkg = pkg.replace(".", File.separator);
-//        System.out.println("pkg:" + pkg);
-//        System.out.println("扫描URL:" + url);
-//        System.out.println("扫描URL:" + this.getClass().getProtectionDomain().getCodeSource().getLocation().getFile());
-//        System.out.println("扫描URL:" + this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
         //扫描
         ComponentScan componentScan = new ComponentScan(url, pkg);
         componentScan.scanComponent(url, pkg);

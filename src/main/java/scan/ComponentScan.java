@@ -43,7 +43,6 @@ public class ComponentScan {
     public void scanComponent(String url, String pkg) throws Exception {
         //然后把classpath和basePack合并
         String searchPath = url + pkg;
-        System.out.println("searchPath=" + searchPath);
         if (searchPath.endsWith("jar")) {
             findClassJar(searchPath);
         } else {
@@ -71,23 +70,13 @@ public class ComponentScan {
             JarEntry jarEntry = jarEntries.nextElement();
             String jarEntryName = jarEntry.getName();
             if (jarEntryName.endsWith(".class")) {
-                //如果是class文件我们就放入我们的集合中。
-                System.out.println("==" + jarEntryName);
+                //如果是class文件我们就放入我们的集合中,替换url是获取包名
                 String pkg = jarEntryName
                         .replace(url, "")
                         .replace("/", ".");
                 pkg = pkg.substring(0, pkg.length() - 6);
                 Class<?> clazz = Class.forName(pkg);
-                //如果是存在Controller注解-暂存
-                JerryController jerryController = clazz.getAnnotation(JerryController.class);
-                if (jerryController != null) {
-                    cls.add(clazz);
-                }
-                JerryService jerryService = clazz.getAnnotation(JerryService.class);
-                if (jerryService != null) {
-                    String value = jerryService.value();
-                    handlerService(clazz, value);
-                }
+                di(clazz);
             }
 
         }
@@ -104,23 +93,27 @@ public class ComponentScan {
         } else {
             //判断是否是class文件
             if (file.getName().endsWith(".class")) {
-                //如果是class文件我们就放入我们的集合中。
+                //如果是class文件我们就放入我们的集合中,替换url是获取包名
                 String pkg = file.getPath()
                         .replace(url, "")
                         .replace("/", ".");
                 pkg = pkg.substring(0, pkg.length() - 6);
                 Class<?> clazz = Class.forName(pkg);
-                //如果是存在Controller注解-暂存
-                JerryController jerryController = clazz.getAnnotation(JerryController.class);
-                if (jerryController != null) {
-                    cls.add(clazz);
-                }
-                JerryService jerryService = clazz.getAnnotation(JerryService.class);
-                if (jerryService != null) {
-                    String value = jerryService.value();
-                    handlerService(clazz, value);
-                }
+                di(clazz);
             }
+        }
+    }
+
+    private void di(Class<?> clazz) throws Exception {
+        //如果是存在Controller注解-暂存
+        JerryController jerryController = clazz.getAnnotation(JerryController.class);
+        if (jerryController != null) {
+            cls.add(clazz);
+        }
+        JerryService jerryService = clazz.getAnnotation(JerryService.class);
+        if (jerryService != null) {
+            String value = jerryService.value();
+            handlerService(clazz, value);
         }
     }
 
@@ -134,17 +127,25 @@ public class ComponentScan {
         } else {
             o = clazz.newInstance();
             String beanId;
+            String cusBeanId = null;
+            String name = clazz.getName();
+            //包名+类名，首字母小写
+            beanId = name.substring(0, 1).toLowerCase() + name.substring(1);
+            //如果编写了Service的beanID
             if (annotationValue != null && !"".equals(annotationValue)) {
-                beanId = annotationValue;
-            } else {
-                //其首字母小写
-                String name = clazz.getName();
-                beanId = name.substring(0, 1).toLowerCase() + name.substring(1);
+                cusBeanId = annotationValue;
             }
             if (jerryContext.getBean(beanId) != null) {
                 throw new JerryException(beanId + "重复");
+            } else {
+                jerryContext.setBean(beanId, o);
             }
-            jerryContext.setBean(beanId, o);
+
+            if (cusBeanId != null && jerryContext.getBean(cusBeanId) != null) {
+                throw new JerryException(cusBeanId + "重复");
+            } else if (cusBeanId != null) {
+                jerryContext.setBean(cusBeanId, o);
+            }
         }
 
         if (o != null) {
@@ -208,10 +209,13 @@ public class ComponentScan {
             String beanId;
             field.setAccessible(true);
             Object instance = null;
+            //
+            String name = field.getType().getName();
+            beanId = name.substring(0, 1).toLowerCase() + name.substring(1);
+
             //如果指定了注入的类
             if (beanName != null && !"".equals(beanName)) {
-                beanId = beanName;
-                instance = jerryContext.getBean(beanId);
+                instance = jerryContext.getBean(beanName);
             }
             //如果未在Autowired指定name,则根据包名来找
             if (instance == null) {
@@ -223,8 +227,6 @@ public class ComponentScan {
                     entries.add(entry);
                     return;
                 } else {
-                    String name = field.getType().getName();
-                    beanId = name.substring(0, 1).toLowerCase() + name.substring(1);
                     instance = jerryContext.getBean(beanId);
                 }
             }

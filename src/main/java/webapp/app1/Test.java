@@ -17,7 +17,7 @@ public class Test {
     @JerryAutowired()
     private TestService testService;
 
-    @JerryAutowired()
+    @JerryAutowired(name = "test")
     private TestServiceInter testService2;
 
     private Logger logger = LoggerFactory.getLogger(this.getClass());

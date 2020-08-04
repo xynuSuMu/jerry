@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
  * @version 1.0
  * @date 2020-07-29 10:04
  */
-@JerryService()
+@JerryService("test")
 public class TestService implements TestServiceInter {
 
     private Logger logger = LoggerFactory.getLogger(this.getClass());
