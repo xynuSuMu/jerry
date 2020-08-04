@@ -99,7 +99,6 @@ public class ComponentScan {
             //文件夹我们就递归
             File[] files = file.listFiles();
             for (File f1 : files) {
-                System.out.println(f1.getName() + "==name");
                 scanComponent(f1);
             }
         } else {

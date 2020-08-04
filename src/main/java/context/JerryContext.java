@@ -15,8 +15,14 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class JerryContext {
     private static final JerryContext jerryContext = new JerryContext();
-    //存储Bean
+
+
+    //存储Bean -> Service注解
     private Map<String, Object> bean = new ConcurrentHashMap<>();
+
+    //beanID 转换-> Service注解中写明name
+    private Map<String, String> beanID = new ConcurrentHashMap<>();
+
     //存储URL对应的控制层方法
     private Map<String, JerryHandlerMethod> controllerMethod = new ConcurrentHashMap<>();
 
@@ -42,6 +48,14 @@ public class JerryContext {
 
     public void setBean(String beanId, Object o) {
         bean.put(beanId, o);
+    }
+
+    public String getBeanID(String name) {
+        return beanID.get(name);
+    }
+
+    public void setBeanID(String beanId, String o) {
+        beanID.put(beanId, o);
     }
 
     public JerryHandlerMethod getMethod(String requestMapping) {

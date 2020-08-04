@@ -17,13 +17,13 @@ public class Test {
     @JerryAutowired()
     private TestService testService;
 
-    @JerryAutowired(name = "test")
+    @JerryAutowired()
     private TestServiceInter testService2;
 
     private Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @JerryRequestMapping(value = "/sys", method = RequestMethod.GET)
-    public String sys(String url) {
+    public String sys(@Param(value = "url") String url) {
         logger.info("我是测试数据，😄哈哈" + url);
         return testService.sys();
     }

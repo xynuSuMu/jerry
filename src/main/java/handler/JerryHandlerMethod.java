@@ -43,8 +43,6 @@ public class JerryHandlerMethod {
     public static HttpResponseModal handlerRequestMethod(ParamModal modal) {
         HttpResponseModal httpResponseModal = new HttpResponseModal();
         JerryHandlerMethod jerryHandlerMethod = jerryContext.getMethod(modal.getUrl());
-        System.out.println("jerryHandlerMethod===");
-        System.out.println(jerryHandlerMethod);
         if (jerryHandlerMethod == null) {
             httpResponseModal.setResponseStatus(HttpResponseStatus.NOT_FOUND);
             return httpResponseModal;
@@ -62,16 +60,17 @@ public class JerryHandlerMethod {
             int i = 0;
             for (Parameter parameter : jerryHandlerMethod.parameterTypes) {
                 //参数
-                params[i++] = modal.getParam().get(parameter.getName());
+                Param param;
+                if ((param = parameter.getDeclaredAnnotation(Param.class)) != null) {
+                    params[i++] = modal.getParam().get(param.value());
+                }
             }
         } else if (jerryHandlerMethod.requestMethods == RequestMethod.POST) {
             int i = 0;
             for (Parameter parameter : jerryHandlerMethod.parameterTypes) {
                 Param param;
                 if ((param = parameter.getDeclaredAnnotation(Param.class)) != null) {
-                    System.out.println("parameter=" + parameter.getName());
                     String p = param.value();
-                    System.out.println("parameter=" + p);
                     //对象
                     if (parameter.getType() != String.class && !parameter.getType().isPrimitive() && !isWrapClass(parameter.getType())) {
                         String jsonStr = modal.getParam().get("JSON").toString();
