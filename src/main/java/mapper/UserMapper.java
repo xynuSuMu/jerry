@@ -1,0 +1,12 @@
+package mapper;
+
+import java.util.List;
+
+/**
+ * @Auther: chenlong
+ * @Date: 2020/8/6 21:37
+ * @Description:
+ */
+public interface UserMapper {
+    List<User> selectUser();
+}
