@@ -1,6 +1,8 @@
 package context;
 
 import handler.JerryHandlerMethod;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -17,11 +19,22 @@ public class JerryContext {
     private static final JerryContext jerryContext = new JerryContext();
 
 
+    //
+//    private SqlSessionTemplate sqlSession;
+//
+//    public void setSqlSession(SqlSessionTemplate sqlSession) {
+//        this.sqlSession = sqlSession;
+//    }
+//
+//    public SqlSessionTemplate getSqlSession() {
+//        return sqlSession;
+//    }
+
     //存储Bean -> Service注解
     private Map<String, Object> bean = new ConcurrentHashMap<>();
 
-    //beanID 转换-> Service注解中写明name
-    private Map<String, String> beanID = new ConcurrentHashMap<>();
+    //存储Mapper
+    private Map<String, Object> mapper = new ConcurrentHashMap<>();
 
     //存储URL对应的控制层方法
     private Map<String, JerryHandlerMethod> controllerMethod = new ConcurrentHashMap<>();
@@ -50,13 +63,14 @@ public class JerryContext {
         bean.put(beanId, o);
     }
 
-    public String getBeanID(String name) {
-        return beanID.get(name);
+    public Object getMapperBean(String name) {
+        return mapper.get(name);
     }
 
-    public void setBeanID(String beanId, String o) {
-        beanID.put(beanId, o);
+    public void setMapper(String beanId, Object o) {
+        mapper.put(beanId, o);
     }
+
 
     public JerryHandlerMethod getMethod(String requestMapping) {
         return controllerMethod.get(requestMapping);

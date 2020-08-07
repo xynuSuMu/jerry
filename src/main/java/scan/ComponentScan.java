@@ -7,9 +7,15 @@ import annotation.JerryService;
 import context.JerryContext;
 import exception.JerryException;
 import handler.JerryHandlerMethod;
+import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import proxy.SqlSessionTemplate;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Enumeration;
@@ -27,32 +33,77 @@ public class ComponentScan {
 
     private static JerryContext jerryContext = JerryContext.getInstance();
 
+    private final String suffix = ".class";
+
+    private List<Class<?>> classes = new CopyOnWriteArrayList<>();
 
     private List<Class<?>> cls = new CopyOnWriteArrayList<>();
     private List<Entry> entries = new CopyOnWriteArrayList<>();
 
     private String url;
-    private String pkg;
 
 
-    public ComponentScan(String url, String pkg) {
+    public ComponentScan(String url) {
         this.url = url;
-        this.pkg = pkg;
     }
 
-    public void scanComponent(String url, String pkg) throws Exception {
+    public void scanMapper(String[] pkgs) throws Exception {
+        // 定义配置文件，相对路径，文件直接放在resources目录下
+        String resource = "mybatis-config.xml";
+        // 读取文件字节流
+        InputStream inputStream = Resources.getResourceAsStream(resource);
+        // mybatis 读取字节流，利用XMLConfigBuilder类解析文件
+        // 将xml文件解析成一个 org.apache.ibatis.session.Configuration 对象
+        // 然后将 Configuration 对象交给 SqlSessionTemplate 接口实现类 DefaultSqlSessionFactory 管理
+        SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
+        // openSession 有多个重载方法， 比较重要几个是
+        // 1 是否默认提交 SqlSession openSession(boolean autoCommit)
+        // 2 设置事务级别 SqlSession openSession(TransactionIsolationLevel level)
+        // 3 执行器类型   SqlSession openSession(ExecutorType execType)
+        SqlSession sqlSession = new SqlSessionTemplate(sqlSessionFactory);// sqlSessionFactory.openSession();
+//        jerryContext.setSqlSession(sqlSessionFactory);
+        for (String pkg : pkgs) {
+            String searchPath = url + pkg;
+            if (searchPath.endsWith("jar")) {//扫描jar包
+                findClassJar(searchPath);
+            } else {//扫描文件夹
+                scanClasses(new File(searchPath));
+            }
+        }
+        for (Class<?> clazz : classes) {
+            //
+            if (clazz.isInterface()) {
+                Object o = sqlSession.getMapper(clazz);
+
+                if (o != null) {
+                    String name = clazz.getName();
+                    String beanId = name.substring(0, 1).toLowerCase() + name.substring(1);
+                    System.out.println(beanId);
+                    jerryContext.setMapper(beanId, o);
+                }
+            }
+        }
+        classes.clear();
+    }
+
+    public void scanComponent(String pkg) throws Exception {
         //然后把classpath和basePack合并
         String searchPath = url + pkg;
-        if (searchPath.endsWith("jar")) {
+        if (searchPath.endsWith("jar")) {//扫描jar包
             findClassJar(searchPath);
-        } else {
-            scanComponent(new File(searchPath));
+        } else {//扫描文件夹
+            scanClasses(new File(searchPath));
+        }
+        //DI
+        for (Class<?> clazz : classes) {
+            di(clazz);
         }
         //处理请求
         handlerController();
         //处理接口注入
         handlerInterface();
         //销毁
+        classes = null;
         cls = null;
         entries = null;
     }
@@ -69,37 +120,37 @@ public class ComponentScan {
         while (jarEntries.hasMoreElements()) {
             JarEntry jarEntry = jarEntries.nextElement();
             String jarEntryName = jarEntry.getName();
-            if (jarEntryName.endsWith(".class")) {
+            if (jarEntryName.endsWith(suffix)) {
                 //如果是class文件我们就放入我们的集合中,替换url是获取包名
                 String pkg = jarEntryName
                         .replace(url, "")
                         .replace("/", ".");
                 pkg = pkg.substring(0, pkg.length() - 6);
                 Class<?> clazz = Class.forName(pkg);
-                di(clazz);
+                classes.add(clazz);
             }
 
         }
 
     }
 
-    public void scanComponent(File file) throws Exception {
+    private void scanClasses(File file) throws Exception {
         if (file.isDirectory()) {//文件夹
             //文件夹我们就递归
             File[] files = file.listFiles();
             for (File f1 : files) {
-                scanComponent(f1);
+                scanClasses(f1);
             }
         } else {
             //判断是否是class文件
-            if (file.getName().endsWith(".class")) {
+            if (file.getName().endsWith(suffix)) {
                 //如果是class文件我们就放入我们的集合中,替换url是获取包名
                 String pkg = file.getPath()
                         .replace(url, "")
                         .replace("/", ".");
                 pkg = pkg.substring(0, pkg.length() - 6);
                 Class<?> clazz = Class.forName(pkg);
-                di(clazz);
+                classes.add(clazz);
             }
         }
     }
@@ -213,9 +264,13 @@ public class ComponentScan {
             String name = field.getType().getName();
             beanId = name.substring(0, 1).toLowerCase() + name.substring(1);
 
-            //如果指定了注入的类
+            //如果指定了注入的beanID
             if (beanName != null && !"".equals(beanName)) {
                 instance = jerryContext.getBean(beanName);
+            }
+            //
+            if (instance == null) {
+                instance = jerryContext.getMapperBean(beanId);
             }
             //如果未在Autowired指定name,则根据包名来找
             if (instance == null) {
