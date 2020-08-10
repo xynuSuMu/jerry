@@ -19,22 +19,9 @@ public class JerryContext {
     private static final JerryContext jerryContext = new JerryContext();
 
 
-    //
-//    private SqlSessionTemplate sqlSession;
-//
-//    public void setSqlSession(SqlSessionTemplate sqlSession) {
-//        this.sqlSession = sqlSession;
-//    }
-//
-//    public SqlSessionTemplate getSqlSession() {
-//        return sqlSession;
-//    }
-
     //存储Bean
     private Map<String, Object> bean = new ConcurrentHashMap<>();
 
-    //存储Mapper
-//    private Map<String, Object> mapper = new ConcurrentHashMap<>();
 
     //存储URL对应的控制层方法
     private Map<String, JerryHandlerMethod> controllerMethod = new ConcurrentHashMap<>();
@@ -63,13 +50,6 @@ public class JerryContext {
         bean.put(beanId, o);
     }
 
-//    public Object getMapperBean(String name) {
-//        return mapper.get(name);
-//    }
-//
-//    public void setMapper(String beanId, Object o) {
-//        mapper.put(beanId, o);
-//    }
 
 
     public JerryHandlerMethod getMethod(String requestMapping) {

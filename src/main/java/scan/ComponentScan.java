@@ -11,6 +11,7 @@ import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import proxy.ServiceProxy;
 import proxy.SqlSessionTemplate;
 
 import java.io.File;
@@ -18,8 +19,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Enumeration;
-import java.util.List;
+import java.lang.reflect.Proxy;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -35,9 +37,15 @@ public class ComponentScan {
 
     private final String suffix = ".class";
 
-    private List<Class<?>> classes = new CopyOnWriteArrayList<>();
+    private Map<Class<?>, Object> cacheObj = new HashMap<>();
 
+    //
+    private List<Class<?>> classes = new CopyOnWriteArrayList<>();
+    //接口
+    private Map<Class<?>, List<Class<?>>> inter = new ConcurrentHashMap<>();
+    //Controller
     private List<Class<?>> cls = new CopyOnWriteArrayList<>();
+    //接口
     private List<Entry> entries = new CopyOnWriteArrayList<>();
 
     private String url;
@@ -93,6 +101,7 @@ public class ComponentScan {
         classes = null;
         cls = null;
         entries = null;
+        cacheObj = null;
     }
 
     private void findClassJar(final String path) throws Exception {
@@ -138,6 +147,18 @@ public class ComponentScan {
                 pkg = pkg.substring(0, pkg.length() - 6);
                 Class<?> clazz = Class.forName(pkg);
                 classes.add(clazz);
+                if (clazz.getAnnotation(JerryService.class) != null) {
+                    Class<?>[] classes = clazz.getInterfaces();
+                    for (Class<?> c : classes) {
+                        if (inter.containsKey(c)) {
+                            inter.get(c).add(clazz);
+                        } else {
+                            List<Class<?>> list = new ArrayList<>();
+                            list.add(clazz);
+                            inter.put(c, list);
+                        }
+                    }
+                }
             }
         }
     }
@@ -147,23 +168,81 @@ public class ComponentScan {
         JerryController jerryController = clazz.getAnnotation(JerryController.class);
         if (jerryController != null) {
             cls.add(clazz);
+        } else {
+            handlerService(clazz);
         }
-        JerryService jerryService = clazz.getAnnotation(JerryService.class);
-        if (jerryService != null) {
-            String value = jerryService.value();
-            handlerService(clazz, value);
-        }
+
     }
 
     //处理Service层
-    private void handlerService(Class<?> clazz, String annotationValue) throws Exception {
-        //判断是否为接口
+    private Object handlerService(Class<?> clazz) throws Exception {
+        JerryService jerryService = clazz.getAnnotation(JerryService.class);
         boolean isInterface = clazz.isInterface();
-        Object o = null;
+        if (cacheObj.containsKey(clazz)) {
+            //
+            System.out.println("存在循环依赖" + clazz.getTypeName());
+            return cacheObj.get(clazz);
+        }
+        //判断是否为接口
         if (isInterface) {
-            //TODO：暂不支持寻找其实现类
-        } else {
-            o = clazz.newInstance();
+            //寻找其实现类
+            if (inter.containsKey(clazz)) {
+                List<Class<?>> classes = inter.get(clazz);
+                //暂时获取第一个
+                String name = classes.get(0).getName();
+                if (jerryContext.getBean(name) != null) {
+                    return jerryContext.getBean(name);
+                } else {
+                    return handlerService(classes.get(0));
+                }
+            }
+            //不存在实现类
+            return null;
+        }
+        if (jerryService != null) {
+            String annotationValue = jerryService.value();
+            Object instance;
+            Object o = null;
+            instance = clazz.newInstance();
+            if (instance != null) {
+                //使用代理类
+                o = Proxy.newProxyInstance(instance.getClass().getClassLoader(),
+                        instance.getClass().getInterfaces(),
+                        new ServiceProxy(instance));
+                //加入缓存
+                cacheObj.put(clazz, o);
+                //字段注入
+                Field[] fields = clazz.getDeclaredFields();
+                for (Field field : fields) {
+                    JerryAutowired jerryAutowired = field.getDeclaredAnnotation(JerryAutowired.class);
+                    if (jerryAutowired != null) {
+                        String beanName = jerryAutowired.name();
+                        String beanId;
+                        field.setAccessible(true);
+                        Object value = null;
+                        //如果指定了注入的beanID
+                        if (beanName != null && !"".equals(beanName)) {
+                            value = jerryContext.getBean(beanName);
+                        }
+                        //
+                        String name = field.getType().getName();
+                        beanId = name.substring(0, 1).toLowerCase() + name.substring(1);
+                        //如果未在Autowired指定name,则根据全限定名来找
+                        if (value == null) {
+                            value = jerryContext.getBean(beanId);
+                        }
+                        //为null,表明该字段需要注入
+                        if (value == null) {
+                            value = handlerService(field.getType());
+                        }
+                        try {
+                            field.set(instance, value);
+                        } catch (IllegalAccessException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
             String beanId;
             String cusBeanId = null;
             String name = clazz.getName();
@@ -174,29 +253,21 @@ public class ComponentScan {
                 cusBeanId = annotationValue;
             }
             if (jerryContext.getBean(beanId) != null) {
-                throw new JerryException(beanId + "重复");
+//                throw new JerryException(beanId + "重复");
             } else {
                 jerryContext.setBean(beanId, o);
             }
 
             if (cusBeanId != null && jerryContext.getBean(cusBeanId) != null) {
-                throw new JerryException(cusBeanId + "重复");
+//                throw new JerryException(cusBeanId + "重复");
             } else if (cusBeanId != null) {
                 jerryContext.setBean(cusBeanId, o);
             }
+            //移除缓存
+            cacheObj.remove(clazz);
+            return o;
         }
-
-        if (o != null) {
-            Field[] fields = clazz.getDeclaredFields();
-            //处理字段，判断是否需要DI
-            handlerField(o, fields);
-        }
-    }
-
-    private void handlerField(Object instance, Field[] fields) {
-        for (Field field : fields) {
-            handlerDI(field, instance);
-        }
+        return null;
     }
 
     //处理控制层方法
@@ -270,6 +341,7 @@ public class ComponentScan {
                     }
                 }
             }
+
             try {
                 field.set(o, instance);
             } catch (IllegalAccessException e) {

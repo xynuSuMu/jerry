@@ -21,7 +21,7 @@ import java.util.List;
 public class Test {
 
     @JerryAutowired()
-    private TestService testService;
+    private TestServiceInter testService;
 
     @JerryAutowired(name = "test")
     private TestServiceInter testService2;
