@@ -9,4 +9,8 @@ import java.util.List;
  */
 public interface UserMapper {
     List<User> selectUser();
+
+    int updateUser();
+
+    int updateUserV2();
 }

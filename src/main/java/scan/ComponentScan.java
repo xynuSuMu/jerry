@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.sql.Connection;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -34,6 +35,7 @@ import java.util.jar.JarFile;
 public class ComponentScan {
 
     private static JerryContext jerryContext = JerryContext.getInstance();
+
 
     private final String suffix = ".class";
 
@@ -59,6 +61,7 @@ public class ComponentScan {
         String resource = "mybatis-config.xml";
         InputStream inputStream = Resources.getResourceAsStream(resource);
         SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
+        jerryContext.setSqlSession(sqlSessionFactory);
         SqlSession sqlSession = new SqlSessionTemplate(sqlSessionFactory);
         for (String pkg : pkgs) {
             String searchPath = url + pkg;

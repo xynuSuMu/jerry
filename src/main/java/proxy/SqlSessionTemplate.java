@@ -4,6 +4,7 @@ import org.apache.ibatis.cursor.Cursor;
 import org.apache.ibatis.exceptions.PersistenceException;
 import org.apache.ibatis.executor.BatchResult;
 import org.apache.ibatis.session.*;
+import transaction.TransactionManage;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -36,24 +37,33 @@ public class SqlSessionTemplate implements SqlSession {
                 SqlSessionFactory.class.getClassLoader(),
                 new Class[]{SqlSession.class},
                 new SqlSessionInterceptor());
-        ;
     }
 
     private class SqlSessionInterceptor implements InvocationHandler {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             System.out.println("----进入SqlSession代理----");
-            SqlSession sqlSession = SqlSessionTemplate.this.sqlSessionFactory.
-                    openSession(SqlSessionTemplate.this.executorType);
+            SqlSession sqlSession = TransactionManage.getResources();
+            boolean tran = true;
+            if (sqlSession == null) {
+                tran = false;
+                sqlSession =   SqlSessionTemplate.this.sqlSessionFactory.
+                        openSession(SqlSessionTemplate.this.executorType);
+            }
             try {
                 Object result = method.invoke(sqlSession, args);
+                if (!tran) {
+                    sqlSession.commit();
+                }
                 return result;
             } catch (Throwable t) {
-                sqlSession.close();
+                if (!tran)
+                    sqlSession.close();
                 Throwable unwrapped = unwrapThrowable(t);
                 throw unwrapped;
             } finally {
-                sqlSession.close();
+                if (!tran)
+                    sqlSession.close();
             }
         }
     }

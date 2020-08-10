@@ -19,6 +19,16 @@ public class JerryContext {
     private static final JerryContext jerryContext = new JerryContext();
 
 
+    private SqlSessionFactory sqlSessionFactory;
+
+    public void setSqlSession(SqlSessionFactory sqlSessionFactory) {
+        this.sqlSessionFactory = sqlSessionFactory;
+    }
+
+    public SqlSessionFactory getSqlSessionFactory() {
+        return sqlSessionFactory;
+    }
+
     //存储Bean
     private Map<String, Object> bean = new ConcurrentHashMap<>();
 
@@ -49,7 +59,6 @@ public class JerryContext {
     public void setBean(String beanId, Object o) {
         bean.put(beanId, o);
     }
-
 
 
     public JerryHandlerMethod getMethod(String requestMapping) {

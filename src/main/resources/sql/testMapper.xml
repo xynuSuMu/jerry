@@ -6,4 +6,11 @@
     <select id="selectUser" resultType="mapper.User">
         select * from manage_user
     </select>
+    <update id="updateUser">
+        update manage_user set date_create = now() where id = 27
+    </update>
+
+    <update id="updateUserV2">
+        update manage_user set user_name = '陈龙2' where id = 27
+    </update>
 </mapper>
