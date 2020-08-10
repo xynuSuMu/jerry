@@ -30,11 +30,11 @@ public class JerryContext {
 //        return sqlSession;
 //    }
 
-    //存储Bean -> Service注解
+    //存储Bean
     private Map<String, Object> bean = new ConcurrentHashMap<>();
 
     //存储Mapper
-    private Map<String, Object> mapper = new ConcurrentHashMap<>();
+//    private Map<String, Object> mapper = new ConcurrentHashMap<>();
 
     //存储URL对应的控制层方法
     private Map<String, JerryHandlerMethod> controllerMethod = new ConcurrentHashMap<>();
@@ -63,13 +63,13 @@ public class JerryContext {
         bean.put(beanId, o);
     }
 
-    public Object getMapperBean(String name) {
-        return mapper.get(name);
-    }
-
-    public void setMapper(String beanId, Object o) {
-        mapper.put(beanId, o);
-    }
+//    public Object getMapperBean(String name) {
+//        return mapper.get(name);
+//    }
+//
+//    public void setMapper(String beanId, Object o) {
+//        mapper.put(beanId, o);
+//    }
 
 
     public JerryHandlerMethod getMethod(String requestMapping) {

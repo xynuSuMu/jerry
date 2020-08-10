@@ -48,20 +48,10 @@ public class ComponentScan {
     }
 
     public void scanMapper(String[] pkgs) throws Exception {
-        // 定义配置文件，相对路径，文件直接放在resources目录下
         String resource = "mybatis-config.xml";
-        // 读取文件字节流
         InputStream inputStream = Resources.getResourceAsStream(resource);
-        // mybatis 读取字节流，利用XMLConfigBuilder类解析文件
-        // 将xml文件解析成一个 org.apache.ibatis.session.Configuration 对象
-        // 然后将 Configuration 对象交给 SqlSessionTemplate 接口实现类 DefaultSqlSessionFactory 管理
         SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
-        // openSession 有多个重载方法， 比较重要几个是
-        // 1 是否默认提交 SqlSession openSession(boolean autoCommit)
-        // 2 设置事务级别 SqlSession openSession(TransactionIsolationLevel level)
-        // 3 执行器类型   SqlSession openSession(ExecutorType execType)
-        SqlSession sqlSession = new SqlSessionTemplate(sqlSessionFactory);// sqlSessionFactory.openSession();
-//        jerryContext.setSqlSession(sqlSessionFactory);
+        SqlSession sqlSession = new SqlSessionTemplate(sqlSessionFactory);
         for (String pkg : pkgs) {
             String searchPath = url + pkg;
             if (searchPath.endsWith("jar")) {//扫描jar包
@@ -71,15 +61,12 @@ public class ComponentScan {
             }
         }
         for (Class<?> clazz : classes) {
-            //
             if (clazz.isInterface()) {
                 Object o = sqlSession.getMapper(clazz);
-
                 if (o != null) {
                     String name = clazz.getName();
                     String beanId = name.substring(0, 1).toLowerCase() + name.substring(1);
-                    System.out.println(beanId);
-                    jerryContext.setMapper(beanId, o);
+                    jerryContext.setBean(beanId, o);
                 }
             }
         }
@@ -268,21 +255,19 @@ public class ComponentScan {
             if (beanName != null && !"".equals(beanName)) {
                 instance = jerryContext.getBean(beanName);
             }
-            //
-            if (instance == null) {
-                instance = jerryContext.getMapperBean(beanId);
-            }
+
             //如果未在Autowired指定name,则根据包名来找
             if (instance == null) {
-                //使用Type包含包名，预防不同包下相同名称的类
-                boolean isInterface = field.getType().isInterface();
-                if (isInterface) {
-                    //接口字段，暂存
-                    Entry entry = new Entry(field, o);
-                    entries.add(entry);
-                    return;
-                } else {
-                    instance = jerryContext.getBean(beanId);
+                instance = jerryContext.getBean(beanId);
+                if (instance == null) {
+                    //使用Type包含包名，预防不同包下相同名称的类
+                    boolean isInterface = field.getType().isInterface();
+                    if (isInterface) {
+                        //接口字段，暂存
+                        Entry entry = new Entry(field, o);
+                        entries.add(entry);
+                        return;
+                    }
                 }
             }
             try {
