@@ -11,6 +11,8 @@ import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import proxy.ServiceProxy;
 import proxy.SqlSessionTemplate;
 
@@ -39,19 +41,16 @@ public class ComponentScan {
 
     private final String suffix = ".class";
 
+    //缓存解决循环依赖
     private Map<Class<?>, Object> cacheObj = new HashMap<>();
-
-    //
+    //所有的class
     private List<Class<?>> classes = new CopyOnWriteArrayList<>();
     //接口
     private Map<Class<?>, List<Class<?>>> inter = new ConcurrentHashMap<>();
-    //Controller
-    private List<Class<?>> cls = new CopyOnWriteArrayList<>();
-    //接口
-    private List<Entry> entries = new CopyOnWriteArrayList<>();
 
     private String url;
 
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
 
     public ComponentScan(String url) {
         this.url = url;
@@ -96,14 +95,8 @@ public class ComponentScan {
         for (Class<?> clazz : classes) {
             di(clazz);
         }
-        //处理请求
-        handlerController();
-        //处理接口注入
-        handlerInterface();
         //销毁
         classes = null;
-        cls = null;
-        entries = null;
         cacheObj = null;
     }
 
@@ -126,11 +119,9 @@ public class ComponentScan {
                         .replace("/", ".");
                 pkg = pkg.substring(0, pkg.length() - 6);
                 Class<?> clazz = Class.forName(pkg);
-                classes.add(clazz);
+                recordInterFace(clazz);
             }
-
         }
-
     }
 
     private void scanClasses(File file) throws Exception {
@@ -149,28 +140,33 @@ public class ComponentScan {
                         .replace("/", ".");
                 pkg = pkg.substring(0, pkg.length() - 6);
                 Class<?> clazz = Class.forName(pkg);
-                classes.add(clazz);
-                if (clazz.getAnnotation(JerryService.class) != null) {
-                    Class<?>[] classes = clazz.getInterfaces();
-                    for (Class<?> c : classes) {
-                        if (inter.containsKey(c)) {
-                            inter.get(c).add(clazz);
-                        } else {
-                            List<Class<?>> list = new ArrayList<>();
-                            list.add(clazz);
-                            inter.put(c, list);
-                        }
-                    }
+                recordInterFace(clazz);
+            }
+        }
+    }
+
+    private void recordInterFace(Class<?> clazz) {
+        classes.add(clazz);
+        if (clazz.getAnnotation(JerryService.class) != null) {
+            Class<?>[] classes = clazz.getInterfaces();
+            for (Class<?> c : classes) {
+                if (inter.containsKey(c)) {
+                    inter.get(c).add(clazz);
+                } else {
+                    List<Class<?>> list = new ArrayList<>();
+                    list.add(clazz);
+                    inter.put(c, list);
                 }
             }
         }
     }
 
+
     private void di(Class<?> clazz) throws Exception {
         //如果是存在Controller注解-暂存
         JerryController jerryController = clazz.getAnnotation(JerryController.class);
         if (jerryController != null) {
-            cls.add(clazz);
+            handlerController(clazz);
         } else {
             handlerService(clazz);
         }
@@ -183,7 +179,7 @@ public class ComponentScan {
         boolean isInterface = clazz.isInterface();
         if (cacheObj.containsKey(clazz)) {
             //
-            System.out.println("存在循环依赖" + clazz.getTypeName());
+            logger.info("存在循环依赖" + clazz.getTypeName());
             return cacheObj.get(clazz);
         }
         //判断是否为接口
@@ -208,6 +204,7 @@ public class ComponentScan {
             Object o = null;
             instance = clazz.newInstance();
             if (instance != null) {
+                //TODO:如果没实现接口，使用 CGLIB
                 //使用代理类
                 o = Proxy.newProxyInstance(instance.getClass().getClassLoader(),
                         instance.getClass().getInterfaces(),
@@ -274,122 +271,45 @@ public class ComponentScan {
     }
 
     //处理控制层方法
-    private void handlerController() throws Exception {
-        for (Class<?> clazz : cls) {
-            Object o = clazz.newInstance();
-            //为字段赋值
-            Field[] fields = clazz.getDeclaredFields();
-            for (Field field : fields) {
-                handlerDI(field, o);
-            }
-            //方法路径
-            String requestMethodUrl = "";
-            //是否有RequestMapping注解
-            JerryRequestMapping jerryRequestMapping;
-            if ((jerryRequestMapping = clazz.getAnnotation(JerryRequestMapping.class)) != null) {
-                requestMethodUrl += jerryRequestMapping.value();
-            }
-            //获取该类中RequestMapping注解
-            Method[] methods = clazz.getDeclaredMethods();
-            for (Method method : methods) {
-                if ((jerryRequestMapping = method.getAnnotation(JerryRequestMapping.class)) != null) {
-                    JerryHandlerMethod jerryHandlerMethod =
-                            new JerryHandlerMethod(method,
-                                    o,
-                                    method.getParameters(),
-                                    method.getReturnType(),
-                                    jerryRequestMapping.method());
-                    String requestMapping = requestMethodUrl + jerryRequestMapping.value();
-                    System.out.println(requestMapping);
-                    if (jerryContext.getMethod(requestMapping) != null) {
-                        throw new JerryException("requestMapping重复:" + requestMapping);
-                    } else {
-                        System.out.println("注入:" + requestMapping);
-                        jerryContext.setControllerMethod(requestMapping,
-                                jerryHandlerMethod);
-                    }
-                }
-            }
-        }
-    }
-
-    //进行DI
-    private void handlerDI(Field field, Object o) {
-        JerryAutowired jerryAutowired = field.getDeclaredAnnotation(JerryAutowired.class);
-        if (jerryAutowired != null) {
-            String beanName = jerryAutowired.name();
-            String beanId;
+    private void handlerController(Class<?> clazz) throws Exception {
+        Object o = clazz.newInstance();
+        //为字段赋值
+        Field[] fields = clazz.getDeclaredFields();
+        for (Field field : fields) {
             field.setAccessible(true);
-            Object instance = null;
-            //
-            String name = field.getType().getName();
-            beanId = name.substring(0, 1).toLowerCase() + name.substring(1);
-
-            //如果指定了注入的beanID
-            if (beanName != null && !"".equals(beanName)) {
-                instance = jerryContext.getBean(beanName);
-            }
-
-            //如果未在Autowired指定name,则根据包名来找
-            if (instance == null) {
-                instance = jerryContext.getBean(beanId);
-                if (instance == null) {
-                    //使用Type包含包名，预防不同包下相同名称的类
-                    boolean isInterface = field.getType().isInterface();
-                    if (isInterface) {
-                        //接口字段，暂存
-                        Entry entry = new Entry(field, o);
-                        entries.add(entry);
-                        return;
-                    }
-                }
-            }
-
-            try {
-                field.set(o, instance);
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
+            if (field.get(o) == null) {
+                Object proxy = handlerService(field.getType());
+                field.set(o, proxy);
             }
         }
-    }
-
-    //处理接口注入的字段
-    private void handlerInterface() {
-        List<Object> list = jerryContext.getBeans();
-        entries.stream().forEach(entry -> {
-            try {
-                entry.handler(list);
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            }
-        });
-    }
-
-    class Entry {
-        private Field field;
-        private Object object;
-
-        public Entry(Field field, Object object) {
-            this.field = field;
-            this.object = object;
+        //方法路径
+        String requestMethodUrl = "";
+        //是否有RequestMapping注解
+        JerryRequestMapping jerryRequestMapping;
+        if ((jerryRequestMapping = clazz.getAnnotation(JerryRequestMapping.class)) != null) {
+            requestMethodUrl += jerryRequestMapping.value();
         }
-
-        public void handler(List<Object> list) throws IllegalAccessException {
-            String beanName = field.getAnnotation(JerryAutowired.class).name();
-
-            if (beanName != null && !"".equals(beanName)) {
-                //寻找Bean
-                field.set(object, jerryContext.getBean(beanName));
-            } else {
-                for (Object o : list) {
-                    for (Class<?> cls : o.getClass().getInterfaces()) {
-                        if (cls == field.getType()) {
-                            field.set(object, o);
-                            return;
-                        }
-                    }
+        //获取该类中RequestMapping注解
+        Method[] methods = clazz.getDeclaredMethods();
+        for (Method method : methods) {
+            if ((jerryRequestMapping = method.getAnnotation(JerryRequestMapping.class)) != null) {
+                JerryHandlerMethod jerryHandlerMethod =
+                        new JerryHandlerMethod(method,
+                                o,
+                                method.getParameters(),
+                                method.getReturnType(),
+                                jerryRequestMapping.method());
+                String requestMapping = requestMethodUrl + jerryRequestMapping.value();
+                logger.info("request:{}", requestMapping);
+                if (jerryContext.getMethod(requestMapping) != null) {
+                    throw new JerryException("requestMapping重复:" + requestMapping);
+                } else {
+                    logger.info("注入:" + requestMapping);
+                    jerryContext.setControllerMethod(requestMapping,
+                            jerryHandlerMethod);
                 }
             }
         }
     }
+
 }

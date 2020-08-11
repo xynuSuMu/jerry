@@ -6,6 +6,8 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import context.JerryContext;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import server.modal.HttpResponseModal;
 import server.modal.ParamModal;
 
@@ -32,6 +34,9 @@ public class JerryHandlerMethod {
 
     private static JerryContext jerryContext = JerryContext.getInstance();
 
+    private static Logger logger = LoggerFactory.getLogger(JerryHandlerMethod.class);
+
+
     public JerryHandlerMethod(Method method, Object o, Parameter[] parameterTypes, Class<?> returnType, RequestMethod requestMethods) {
         this.method = method;
         this.o = o;
@@ -54,7 +59,7 @@ public class JerryHandlerMethod {
             httpResponseModal.setResponseStatus(HttpResponseStatus.METHOD_NOT_ALLOWED);
             return httpResponseModal;
         }
-        System.out.println(JSONObject.toJSONString(modal));
+        logger.info(JSONObject.toJSONString(modal));
         Object[] params = new Object[jerryHandlerMethod.parameterTypes.length];
         if (jerryHandlerMethod.requestMethods == RequestMethod.GET) {
             int i = 0;
@@ -89,13 +94,17 @@ public class JerryHandlerMethod {
         Object o1 = null;
         try {
             o1 = method.invoke(o, params);
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
+            if (jerryHandlerMethod.returnType == void.class) {
+                httpResponseModal.setO("");
+            } else {
+                httpResponseModal.setO(o1);
+            }
+            httpResponseModal.setResponseStatus(HttpResponseStatus.OK);
+        } catch (Exception e) {
+            httpResponseModal.setResponseStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
             e.printStackTrace();
         }
-        httpResponseModal.setO(o1);
-        httpResponseModal.setResponseStatus(HttpResponseStatus.OK);
+
         return httpResponseModal;
     }
 

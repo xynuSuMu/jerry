@@ -2,14 +2,9 @@ package webapp.app1;
 
 import annotation.*;
 import com.alibaba.fastjson.JSONObject;
-import context.JerryContext;
-import mapper.User;
-import mapper.UserMapper;
-import org.apache.ibatis.session.SqlSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 
 /**
  * @author 陈龙
@@ -32,8 +27,8 @@ public class Test {
     @JerryRequestMapping(value = "/sys", method = RequestMethod.GET)
     public String sys(@Param(value = "url") String url) {
         logger.info("我是测试数据，😄哈哈" + url);
-
-        return testService.sys();
+        testService.sys();
+        return "---";
     }
 
     @JerryRequestMapping(value = "/sys2", method = RequestMethod.POST)

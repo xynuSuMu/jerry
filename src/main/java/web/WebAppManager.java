@@ -25,11 +25,13 @@ public class WebAppManager {
         logger.info("URL:{}", modal.getUrl());
         logger.info("Method:{}", modal.getHttpMethod());
         logger.info("Param:{}", modal.getParam());
+        //拦截器链
+
         //寻找RequestMapping对应的控制层方法
         HttpResponseModal httpResponseModal = JerryHandlerMethod.handlerRequestMethod(modal);
         //响应
         FullHttpResponse response;
-        if (httpResponseModal.getResponseStatus() != HttpResponseStatus.OK) {
+        if (httpResponseModal.getResponseStatus() != HttpResponseStatus.OK || httpResponseModal.getO() == null) {
             response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpResponseModal.getResponseStatus(),
                     Unpooled.copiedBuffer("Fail:" + httpResponseModal.getResponseStatus().code(), CharsetUtil.UTF_8));
         } else {

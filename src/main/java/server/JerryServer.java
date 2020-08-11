@@ -8,11 +8,21 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.ssl.SslHandler;
 import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import server.modal.ParamModal;
 import web.WebAppManager;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.*;
+import java.security.cert.CertificateException;
 
 /**
  * @author 陈龙
@@ -24,10 +34,22 @@ public class JerryServer {
 
     private Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    public void start(int port) {
+    public void start(int port) throws Exception {
         //事件驱动
         EventLoopGroup boss = new NioEventLoopGroup();
         EventLoopGroup worker = new NioEventLoopGroup();
+
+        //SSL证书
+//        KeyStore ks = KeyStore.getInstance("JKS");
+//        InputStream ksInputStream = new FileInputStream("/Users/chenlong/Documents/xcx/dream/jerry/src/main/resources/studyjava.jks");
+//        ks.load(ksInputStream, "123456".toCharArray());
+//        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+//        kmf.init(ks, "654321".toCharArray());
+//        SSLContext sslContext = SSLContext.getInstance("TLS");
+//        sslContext.init(kmf.getKeyManagers(), null, null);
+//        SSLEngine sslEngine = sslContext.createSSLEngine();
+//        sslEngine.setUseClientMode(false); //服务器端模式
+//        sslEngine.setNeedClientAuth(false); //不需要验证客户端
         //
         try {
             ServerBootstrap bootstrap = new ServerBootstrap();
@@ -39,6 +61,7 @@ public class JerryServer {
                         @Override
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
                             ChannelPipeline pipeline = socketChannel.pipeline();
+//                            pipeline.addLast("ssl", new SslHandler(sslEngine));
                             pipeline.addLast(new HttpServerCodec());// http 编解码
                             pipeline.addLast("httpAggregator", new HttpObjectAggregator(512 * 1024)); // http 消息聚合器                                                                     512*1024为接收的最大contentlength
                             pipeline.addLast(new HttpHandler());// 请求处理器
@@ -72,16 +95,16 @@ public class JerryServer {
             //请求类型
             QueryStringDecoder decoder = new QueryStringDecoder(fullHttpRequest.getUri());
             decoder.parameters().entrySet().forEach(entry -> {
-                logger.info("请求URL携带的参数:Key:{},Value:{}", entry.getKey(), entry.getValue().get(0));
+//                logger.info("请求URL携带的参数:Key:{},Value:{}", entry.getKey(), entry.getValue().get(0));
                 paramModal.getParam().put(entry.getKey(), entry.getValue().get(0));
             });
             if (fullHttpRequest.getMethod() == HttpMethod.POST) {
                 ByteBuf jsonBuf = fullHttpRequest.content();
                 String jsonStr = jsonBuf.toString(CharsetUtil.UTF_8);
-                logger.info("消息体,{}", jsonStr);
+//                logger.info("消息体,{}", jsonStr);
                 paramModal.getParam().put("JSON", jsonStr);
-            } else if (fullHttpRequest.getMethod() != HttpMethod.GET){
-                logger.info("暂不支持{}请求", fullHttpRequest.getMethod());
+            } else if (fullHttpRequest.getMethod() != HttpMethod.GET) {
+//                logger.info("暂不支持{}请求", fullHttpRequest.getMethod());
                 sendError(ctx, HttpResponseStatus.METHOD_NOT_ALLOWED);
                 return;
             }
@@ -89,7 +112,7 @@ public class JerryServer {
             if (url.contains("?")) {
                 url = url.split("\\?")[0];
             }
-            logger.info("请求URL,{}", url);
+//            logger.info("请求URL,{}", url);
             paramModal.setUrl(url);
             //寻找相关应用接口
             searchApplication(ctx, paramModal);
@@ -107,7 +130,6 @@ public class JerryServer {
             try {
                 ctx.writeAndFlush(new WebAppManager().response(modal)).addListener(ChannelFutureListener.CLOSE);
             } catch (Exception e) {
-                logger.info("e", e);
                 e.printStackTrace();
             }
             sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
