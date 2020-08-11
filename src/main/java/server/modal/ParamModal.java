@@ -14,6 +14,7 @@ public class ParamModal {
 
     private HttpMethod httpMethod;
     private String url;
+    private HttpJerryRequest httpJerryRequest;
 
     private Map<Object, Object> param = new ConcurrentHashMap<>();
 
@@ -35,5 +36,17 @@ public class ParamModal {
 
     public void setUrl(String url) {
         this.url = url;
+    }
+
+    public HttpJerryRequest getHttpJerryRequest() {
+        return httpJerryRequest;
+    }
+
+    public void setHttpJerryRequest(HttpJerryRequest httpJerryRequest) {
+        this.httpJerryRequest = httpJerryRequest;
+    }
+
+    public void setParam(Map<Object, Object> param) {
+        this.param = param;
     }
 }

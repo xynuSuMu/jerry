@@ -6,4 +6,5 @@ package web.interceptor;
  * @date 2020-08-11 12:37
  */
 public interface HandlerInterceptor {
+
 }

@@ -12,6 +12,7 @@ import io.netty.handler.ssl.SslHandler;
 import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import server.modal.HttpJerryRequest;
 import server.modal.ParamModal;
 import web.WebAppManager;
 
@@ -114,6 +115,10 @@ public class JerryServer {
             }
 //            logger.info("请求URL,{}", url);
             paramModal.setUrl(url);
+            HttpHeaders httpHeaders = fullHttpRequest.headers();
+            HttpJerryRequest httpJerryRequest = new HttpJerryRequest();
+            httpJerryRequest.setHttpHeaders(httpHeaders);
+            paramModal.setHttpJerryRequest(httpJerryRequest);
             //寻找相关应用接口
             searchApplication(ctx, paramModal);
         }

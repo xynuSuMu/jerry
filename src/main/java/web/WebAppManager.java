@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 import server.modal.HttpResponseModal;
 import server.modal.ParamModal;
 
+import java.util.Map;
+
 /**
  * @author 陈龙
  * @version 1.0
@@ -25,8 +27,11 @@ public class WebAppManager {
         logger.info("URL:{}", modal.getUrl());
         logger.info("Method:{}", modal.getHttpMethod());
         logger.info("Param:{}", modal.getParam());
-        //拦截器链
-
+        //TODO：开发拦截器链
+//        for (Map.Entry<String, String> m: modal.getHttpJerryRequest().getHttpHeaders().entries()){
+//            System.out.println(m.getKey());
+//            System.out.println(m.getValue());
+//        }
         //寻找RequestMapping对应的控制层方法
         HttpResponseModal httpResponseModal = JerryHandlerMethod.handlerRequestMethod(modal);
         //响应

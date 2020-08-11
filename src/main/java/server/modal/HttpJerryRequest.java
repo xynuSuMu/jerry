@@ -1,5 +1,7 @@
 package server.modal;
 
+import io.netty.handler.codec.http.HttpHeaders;
+
 import java.util.Map;
 
 /**
@@ -12,11 +14,31 @@ public class HttpJerryRequest {
 
     private String url;
 
+    private HttpHeaders httpHeaders;
+
     private Map<String, Object> params;
 
+    public String getUrl() {
+        return url;
+    }
 
-    public Object getRequestParam(String name) {
+    public void setUrl(String url) {
+        this.url = url;
+    }
 
-        return null;
+    public HttpHeaders getHttpHeaders() {
+        return httpHeaders;
+    }
+
+    public void setHttpHeaders(HttpHeaders httpHeaders) {
+        this.httpHeaders = httpHeaders;
+    }
+
+    public Map<String, Object> getParams() {
+        return params;
+    }
+
+    public void setParams(Map<String, Object> params) {
+        this.params = params;
     }
 }
