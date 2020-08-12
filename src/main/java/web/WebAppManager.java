@@ -8,10 +8,15 @@ import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import server.modal.HttpJerryResponse;
 import server.modal.HttpResponseModal;
 import server.modal.ParamModal;
+import web.interceptor.Chain;
+import web.interceptor.InterceptorRegistration;
+import web.interceptor.support.InterceptorSupport;
 
-import java.util.Map;
+import java.util.List;
+
 
 /**
  * @author 陈龙
@@ -22,18 +27,20 @@ public class WebAppManager {
 
     private Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    public FullHttpResponse response(ParamModal modal) {
+    public FullHttpResponse response(ParamModal modal) throws Exception {
         //寻找Controller对象
         logger.info("URL:{}", modal.getUrl());
         logger.info("Method:{}", modal.getHttpMethod());
         logger.info("Param:{}", modal.getParam());
         //TODO：开发拦截器链
-//        for (Map.Entry<String, String> m: modal.getHttpJerryRequest().getHttpHeaders().entries()){
-//            System.out.println(m.getKey());
-//            System.out.println(m.getValue());
-//        }
+        HttpJerryResponse jerryResponse = new HttpJerryResponse();
+        Chain.chain(
+                InterceptorSupport.getInstance().getRegistry().getInterceptors(),
+                modal.getHttpJerryRequest(),
+                jerryResponse,
+                null);
         //寻找RequestMapping对应的控制层方法
-        HttpResponseModal httpResponseModal = JerryHandlerMethod.handlerRequestMethod(modal);
+        HttpJerryResponse httpResponseModal = jerryResponse.getResponseStatus() == null ? JerryHandlerMethod.handlerRequestMethod(modal) : jerryResponse;
         //响应
         FullHttpResponse response;
         if (httpResponseModal.getResponseStatus() != HttpResponseStatus.OK || httpResponseModal.getO() == null) {

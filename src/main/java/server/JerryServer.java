@@ -117,6 +117,7 @@ public class JerryServer {
             paramModal.setUrl(url);
             HttpHeaders httpHeaders = fullHttpRequest.headers();
             HttpJerryRequest httpJerryRequest = new HttpJerryRequest();
+            httpJerryRequest.setUrl(url);
             httpJerryRequest.setHttpHeaders(httpHeaders);
             paramModal.setHttpJerryRequest(httpJerryRequest);
             //寻找相关应用接口

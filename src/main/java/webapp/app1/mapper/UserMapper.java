@@ -1,4 +1,4 @@
-package mapper;
+package webapp.app1.mapper;
 
 import java.util.List;
 

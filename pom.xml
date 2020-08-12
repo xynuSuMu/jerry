@@ -35,6 +35,13 @@
             <artifactId>fastjson</artifactId>
             <version>1.2.72</version>
         </dependency>
+        <dependency>
+            <groupId>cglib</groupId>
+            <artifactId>cglib</artifactId>
+            <version>3.3.0</version>
+        </dependency>
+
+        <!--==客户端==-->
         <!--驱动依赖-->
         <dependency>
             <groupId>mysql</groupId>
@@ -48,7 +55,6 @@
             <artifactId>mybatis</artifactId>
             <version>3.4.6</version>
         </dependency>
-
 
 
     </dependencies>

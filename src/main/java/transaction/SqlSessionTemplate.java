@@ -1,11 +1,10 @@
-package proxy;
+package transaction;
 
 import org.apache.ibatis.cursor.Cursor;
 import org.apache.ibatis.executor.BatchResult;
 import org.apache.ibatis.session.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import transaction.TransactionManage;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -44,7 +43,7 @@ public class SqlSessionTemplate implements SqlSession {
     private class SqlSessionInterceptor implements InvocationHandler {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            logger.info("----进入SqlSession代理----");
+//            logger.info("----进入SqlSession代理----");
             SqlSession sqlSession = TransactionManage.getResources();
             boolean tran = true;
             if (sqlSession == null) {

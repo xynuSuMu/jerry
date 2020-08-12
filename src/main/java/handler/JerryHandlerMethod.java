@@ -8,6 +8,7 @@ import context.JerryContext;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import server.modal.HttpJerryResponse;
 import server.modal.HttpResponseModal;
 import server.modal.ParamModal;
 
@@ -45,8 +46,8 @@ public class JerryHandlerMethod {
         this.requestMethods = requestMethods;
     }
 
-    public static HttpResponseModal handlerRequestMethod(ParamModal modal) {
-        HttpResponseModal httpResponseModal = new HttpResponseModal();
+    public static HttpJerryResponse handlerRequestMethod(ParamModal modal) {
+        HttpJerryResponse httpResponseModal = new HttpJerryResponse();
         JerryHandlerMethod jerryHandlerMethod = jerryContext.getMethod(modal.getUrl());
         if (jerryHandlerMethod == null) {
             httpResponseModal.setResponseStatus(HttpResponseStatus.NOT_FOUND);

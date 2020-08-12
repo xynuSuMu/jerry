@@ -1,20 +1,21 @@
 package scan;
 
-import annotation.JerryAutowired;
-import annotation.JerryController;
-import annotation.JerryRequestMapping;
-import annotation.JerryService;
+import annotation.*;
 import context.JerryContext;
 import exception.JerryException;
 import handler.JerryHandlerMethod;
+import net.sf.cglib.proxy.Enhancer;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import proxy.CGServiceProxy;
 import proxy.ServiceProxy;
-import proxy.SqlSessionTemplate;
+import transaction.SqlSessionTemplate;
+import web.interceptor.support.InterceptorSupport;
+import web.interceptor.support.WebMvcSupport;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,7 +23,6 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.sql.Connection;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -163,111 +163,129 @@ public class ComponentScan {
 
 
     private void di(Class<?> clazz) throws Exception {
-        //如果是存在Controller注解-暂存
+        JerryConfig jerryConfig = clazz.getAnnotation(JerryConfig.class);
+        if (jerryConfig != null) {
+            Object o = handlerComponent(clazz);
+            if (o instanceof WebMvcSupport) {
+                WebMvcSupport webMvcSupport = (WebMvcSupport) o;
+                InterceptorSupport interceptorSupport = InterceptorSupport.getInstance();
+                interceptorSupport.mvcConfig(webMvcSupport);
+            }
+        }
+        //如果是存在Controller注解
         JerryController jerryController = clazz.getAnnotation(JerryController.class);
         if (jerryController != null) {
             handlerController(clazz);
-        } else {
-            handlerService(clazz);
         }
-
+        //Service注解
+        JerryService service = clazz.getAnnotation(JerryService.class);
+        if (service != null) {
+            handlerComponent(clazz);
+        }
     }
 
-    //处理Service层
-    private Object handlerService(Class<?> clazz) throws Exception {
-        JerryService jerryService = clazz.getAnnotation(JerryService.class);
-        boolean isInterface = clazz.isInterface();
+
+    private Object handlerComponent(Class<?> clazz) throws Exception {
         if (cacheObj.containsKey(clazz)) {
-            //
             logger.info("存在循环依赖" + clazz.getTypeName());
             return cacheObj.get(clazz);
         }
+        Object o = null;
+        String name = clazz.getName();
+        String beanID = name.substring(0, 1).toLowerCase() + name.substring(1);
+        String cusBeanID = null;
+        //Service组件
+        JerryService jerryService = clazz.getAnnotation(JerryService.class);
+        String annotationValue;
+        if (jerryService != null && !"".equals(annotationValue = jerryService.value())) {
+            cusBeanID = annotationValue;
+        }
+        //Config组件
+        JerryConfig jerryConfig = clazz.getAnnotation(JerryConfig.class);
+        if (jerryConfig != null) {
+
+        }
+        if ((o = jerryContext.getBean(beanID)) != null) {
+            return o;
+        }
+        if (cusBeanID != null && (o = jerryContext.getBean(cusBeanID)) != null) {
+            return o;
+        }
         //判断是否为接口
+        boolean isInterface = clazz.isInterface();
         if (isInterface) {
             //寻找其实现类
             if (inter.containsKey(clazz)) {
                 List<Class<?>> classes = inter.get(clazz);
                 //暂时获取第一个
-                String name = classes.get(0).getName();
-                if (jerryContext.getBean(name) != null) {
-                    return jerryContext.getBean(name);
+                String filedName = classes.get(0).getName();
+                if (jerryContext.getBean(filedName) != null) {
+                    return jerryContext.getBean(filedName);
                 } else {
-                    return handlerService(classes.get(0));
+                    return handlerComponent(classes.get(0));
                 }
             }
             //不存在实现类
             return null;
         }
-        if (jerryService != null) {
-            String annotationValue = jerryService.value();
-            Object instance;
-            Object o = null;
-            instance = clazz.newInstance();
-            if (instance != null) {
-                //TODO:如果没实现接口，使用 CGLIB
-                //使用代理类
-                o = Proxy.newProxyInstance(instance.getClass().getClassLoader(),
-                        instance.getClass().getInterfaces(),
-                        new ServiceProxy(instance));
-                //加入缓存
-                cacheObj.put(clazz, o);
-                //字段注入
-                Field[] fields = clazz.getDeclaredFields();
-                for (Field field : fields) {
-                    JerryAutowired jerryAutowired = field.getDeclaredAnnotation(JerryAutowired.class);
-                    if (jerryAutowired != null) {
-                        String beanName = jerryAutowired.name();
-                        String beanId;
-                        field.setAccessible(true);
-                        Object value = null;
-                        //如果指定了注入的beanID
-                        if (beanName != null && !"".equals(beanName)) {
-                            value = jerryContext.getBean(beanName);
-                        }
-                        //
-                        String name = field.getType().getName();
-                        beanId = name.substring(0, 1).toLowerCase() + name.substring(1);
-                        //如果未在Autowired指定name,则根据全限定名来找
-                        if (value == null) {
-                            value = jerryContext.getBean(beanId);
-                        }
-                        //为null,表明该字段需要注入
-                        if (value == null) {
-                            value = handlerService(field.getType());
-                        }
-                        try {
-                            field.set(instance, value);
-                        } catch (IllegalAccessException e) {
-                            e.printStackTrace();
-                        }
+        Object instance = clazz.newInstance();
+        if (instance != null) {
+            //使用 CGLIB
+            Enhancer enhancer = new Enhancer();
+            enhancer.setSuperclass(clazz);
+            enhancer.setCallback(new CGServiceProxy());
+            o = enhancer.create();
+            //使用代理类
+//            o = Proxy.newProxyInstance(instance.getClass().getClassLoader(),
+//                    instance.getClass().getInterfaces(),
+//                    new ServiceProxy(instance));
+            //加入缓存
+            cacheObj.put(clazz, o);
+            //字段注入
+            Field[] fields = clazz.getDeclaredFields();
+            for (Field field : fields) {
+                JerryAutowired jerryAutowired = field.getDeclaredAnnotation(JerryAutowired.class);
+                if (jerryAutowired != null) {
+                    String fieldBeanName = jerryAutowired.name();
+                    String fieldBeanId;
+                    field.setAccessible(true);
+                    Object value = null;
+                    //如果指定了注入的beanID
+                    if (fieldBeanName != null && !"".equals(fieldBeanName)) {
+                        value = jerryContext.getBean(fieldBeanName);
+                    }
+                    //
+                    String fieldName = field.getType().getName();
+                    fieldBeanId = fieldName.substring(0, 1).toLowerCase() + fieldName.substring(1);
+                    //如果未在Autowired指定name,则根据全限定名来找
+                    if (value == null) {
+                        value = jerryContext.getBean(fieldBeanId);
+                    }
+                    //为null,表明该字段需要注入
+                    if (value == null) {
+                        value = handlerComponent(field.getType());
+                    }
+                    try {
+                        field.set(o, value);
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
                     }
                 }
             }
-            String beanId;
-            String cusBeanId = null;
-            String name = clazz.getName();
-            //包名+类名，首字母小写
-            beanId = name.substring(0, 1).toLowerCase() + name.substring(1);
-            //如果编写了Service的beanID
-            if (annotationValue != null && !"".equals(annotationValue)) {
-                cusBeanId = annotationValue;
-            }
-            if (jerryContext.getBean(beanId) != null) {
-//                throw new JerryException(beanId + "重复");
-            } else {
-                jerryContext.setBean(beanId, o);
-            }
-
-            if (cusBeanId != null && jerryContext.getBean(cusBeanId) != null) {
-//                throw new JerryException(cusBeanId + "重复");
-            } else if (cusBeanId != null) {
-                jerryContext.setBean(cusBeanId, o);
-            }
-            //移除缓存
-            cacheObj.remove(clazz);
-            return o;
         }
-        return null;
+        if (jerryContext.getBean(beanID) != null) {
+            throw new JerryException(beanID + "重复");
+        } else {
+            jerryContext.setBean(beanID, o);
+        }
+        if (cusBeanID != null && jerryContext.getBean(cusBeanID) != null) {
+            throw new JerryException(cusBeanID + "重复");
+        } else if (cusBeanID != null) {
+            jerryContext.setBean(cusBeanID, o);
+        }
+        //移除缓存
+        cacheObj.remove(clazz);
+        return o;
     }
 
     //处理控制层方法
@@ -278,7 +296,7 @@ public class ComponentScan {
         for (Field field : fields) {
             field.setAccessible(true);
             if (field.get(o) == null) {
-                Object proxy = handlerService(field.getType());
+                Object proxy = handlerComponent(field.getType());
                 field.set(o, proxy);
             }
         }

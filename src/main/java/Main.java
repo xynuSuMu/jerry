@@ -11,7 +11,7 @@ import java.io.*;
  * @date 2020-07-22 15:27
  * @desc 程序入口
  */
-@MapperScan(pkg = {"mapper"})
+@MapperScan(pkg = {"webapp/app1/mapper"})
 public class Main {
 
 

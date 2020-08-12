@@ -3,8 +3,8 @@ package webapp.app1;
 import annotation.JerryAutowired;
 import annotation.JerryService;
 import annotation.JerryTranscational;
-import mapper.User;
-import mapper.UserMapper;
+import webapp.app1.mapper.User;
+import webapp.app1.mapper.UserMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

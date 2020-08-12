@@ -18,4 +18,5 @@
     <mappers>
         <mapper resource="sql/testMapper.xml"/>
     </mappers>
+
 </configuration>

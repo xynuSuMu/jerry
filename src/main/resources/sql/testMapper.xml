@@ -2,8 +2,8 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="mapper.UserMapper">
-    <select id="selectUser" resultType="mapper.User">
+<mapper namespace="webapp.app1.mapper.UserMapper">
+    <select id="selectUser" resultType="webapp.app1.mapper.User">
         select * from manage_user
     </select>
     <update id="updateUser">
