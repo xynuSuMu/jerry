@@ -28,7 +28,7 @@ public class Test {
     public String sys(@Param(value = "url") String url) {
         logger.info("我是测试数据，😄哈哈" + url);
         testService.sys();
-        return "---";
+        return "--";
     }
 
     @JerryRequestMapping(value = "/sys2", method = RequestMethod.POST)

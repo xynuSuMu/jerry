@@ -32,7 +32,7 @@ public class WebAppManager {
         logger.info("URL:{}", modal.getUrl());
         logger.info("Method:{}", modal.getHttpMethod());
         logger.info("Param:{}", modal.getParam());
-        //TODO：开发拦截器链
+        //开发拦截器链
         HttpJerryResponse jerryResponse = new HttpJerryResponse();
         Chain.chain(
                 InterceptorSupport.getInstance().getRegistry().getInterceptors(),

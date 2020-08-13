@@ -3,6 +3,7 @@ package web.interceptor;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import server.modal.HttpJerryRequest;
 import server.modal.HttpJerryResponse;
+import util.CopyAntPathMatcher;
 
 import java.util.List;
 
@@ -17,13 +18,13 @@ public class Chain {
                              HttpJerryRequest request,
                              HttpJerryResponse response,
                              Object o) throws Exception {
-
+        CopyAntPathMatcher copyAntPathMatcher = new CopyAntPathMatcher();
         for (Object temp : interceptorRegistrations) {
             InterceptorRegistration interceptorRegistration = (InterceptorRegistration) temp;
             HandlerInterceptor handlerInterceptor = (HandlerInterceptor) interceptorRegistration.getInterceptor();
             MappedInterceptor mappedInterceptor = (MappedInterceptor) interceptorRegistration.getInterceptor();
             for (String url : mappedInterceptor.getIncludePatterns()) {
-                if (request.getUrl().equals(url)) {
+                if (copyAntPathMatcher.match(url, request.getUrl())) {
                     boolean res = handlerInterceptor.preHandle(request, response, o);
                     if (!res) {
                         response.setResponseStatus(HttpResponseStatus.FORBIDDEN);

@@ -27,7 +27,7 @@ public class WebMvcSupportConfig extends WebMvcSupport {
     protected void addInterceptors(InterceptorRegistry registry) {
         List<String> includePatterns = new ArrayList<>();
         logger.info("自定义注册拦截");
-        includePatterns.add("/test/sys");
+        includePatterns.add("/**/*");
         registry.addInterceptor(myInterceptor).addPathPatterns(includePatterns);
         super.addInterceptors(registry);
     }
