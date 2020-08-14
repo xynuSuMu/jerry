@@ -1,11 +1,11 @@
 package context;
 
-import handler.JerryHandlerMethod;
-import org.apache.ibatis.session.SqlSession;
+import handler.JerryControllerHandlerMethod;
 import org.apache.ibatis.session.SqlSessionFactory;
+import util.CopyAntPathMatcher;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,7 +34,7 @@ public class JerryContext {
 
 
     //存储URL对应的控制层方法
-    private Map<String, JerryHandlerMethod> controllerMethod = new ConcurrentHashMap<>();
+    private Map<String, JerryControllerHandlerMethod> controllerMethod = new ConcurrentHashMap<>();
 
     private JerryContext() {
 
@@ -60,12 +60,34 @@ public class JerryContext {
         bean.put(beanId, o);
     }
 
+    public JerryControllerHandlerMethod getRequestMethod(String path) {
+        CopyAntPathMatcher copyAntPathMatcher = new CopyAntPathMatcher();
+        List<String> list = new ArrayList<>();
+        for (Map.Entry<String, JerryControllerHandlerMethod> entry : controllerMethod.entrySet()) {
+            if (copyAntPathMatcher.match(entry.getKey(), path)) {
+                list.add(entry.getKey());
+            }
+        }
+        int index = 0;
+        Comparator<String> comparator = copyAntPathMatcher.getPatternComparator(path);
+        for (int i = 1; i < list.size(); i++) {
+            String pattern = list.get(index);
+            int res = comparator.compare(pattern, list.get(i));
+            if (res == 0) {
+                break;
+            } else if (res == 1) {
+                index = i;
+            }
+        }
 
-    public JerryHandlerMethod getMethod(String requestMapping) {
+        return controllerMethod.get(list.get(index));
+    }
+
+    public JerryControllerHandlerMethod getMethod(String requestMapping) {
         return controllerMethod.get(requestMapping);
     }
 
-    public void setControllerMethod(String requestMapping, JerryHandlerMethod method) {
+    public void setControllerMethod(String requestMapping, JerryControllerHandlerMethod method) {
         controllerMethod.put(requestMapping, method);
     }
 }

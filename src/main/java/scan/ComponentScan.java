@@ -3,7 +3,7 @@ package scan;
 import annotation.*;
 import context.JerryContext;
 import exception.JerryException;
-import handler.JerryHandlerMethod;
+import handler.JerryControllerHandlerMethod;
 import net.sf.cglib.proxy.Enhancer;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
@@ -12,7 +12,6 @@ import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proxy.CGServiceProxy;
-import proxy.ServiceProxy;
 import transaction.SqlSessionTemplate;
 import web.interceptor.support.InterceptorSupport;
 import web.interceptor.support.WebMvcSupport;
@@ -20,9 +19,9 @@ import web.interceptor.support.WebMvcSupport;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -62,11 +61,12 @@ public class ComponentScan {
         SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
         jerryContext.setSqlSession(sqlSessionFactory);
         SqlSession sqlSession = new SqlSessionTemplate(sqlSessionFactory);
-        for (String pkg : pkgs) {
-            String searchPath = url + pkg;
-            if (searchPath.endsWith("jar")) {//扫描jar包
-                findClassJar(searchPath);
-            } else {//扫描文件夹
+        if (url.endsWith("jar")) {//扫描jar包
+            findClassJar(url, pkgs);
+        } else {
+            for (String pkg : pkgs) {
+                String searchPath = url + pkg;
+                //扫描文件夹
                 scanClasses(new File(searchPath));
             }
         }
@@ -87,7 +87,7 @@ public class ComponentScan {
         //然后把classpath和basePack合并
         String searchPath = url + pkg;
         if (searchPath.endsWith("jar")) {//扫描jar包
-            findClassJar(searchPath);
+            findClassJar(searchPath, null);
         } else {//扫描文件夹
             scanClasses(new File(searchPath));
         }
@@ -100,7 +100,7 @@ public class ComponentScan {
         cacheObj = null;
     }
 
-    private void findClassJar(final String path) throws Exception {
+    private void findClassJar(final String path, final String[] finalPkgs) throws Exception {
         JarFile jarFile = null;
         try {
             jarFile = new JarFile(new File(path));
@@ -115,11 +115,14 @@ public class ComponentScan {
             if (jarEntryName.endsWith(suffix)) {
                 //如果是class文件我们就放入我们的集合中,替换url是获取包名
                 String pkg = jarEntryName
-                        .replace(url, "")
-                        .replace("/", ".");
-                pkg = pkg.substring(0, pkg.length() - 6);
-                Class<?> clazz = Class.forName(pkg);
-                recordInterFace(clazz);
+                        .replace(url, "");
+                for (String finalPkg : finalPkgs) {
+                    if (finalPkg == null || pkg.startsWith(finalPkg)) {
+                        pkg = pkg.replace("/", ".").substring(0, pkg.length() - 6);
+                        Class<?> clazz = Class.forName(pkg);
+                        recordInterFace(clazz);
+                    }
+                }
             }
         }
     }
@@ -174,7 +177,8 @@ public class ComponentScan {
         }
         //如果是存在Controller注解
         JerryController jerryController = clazz.getAnnotation(JerryController.class);
-        if (jerryController != null) {
+        JerryRestController restController = clazz.getAnnotation(JerryRestController.class);
+        if (jerryController != null || restController != null) {
             handlerController(clazz);
         }
         //Service注解
@@ -290,6 +294,7 @@ public class ComponentScan {
 
     //处理控制层方法
     private void handlerController(Class<?> clazz) throws Exception {
+        //todo:后续改造为代理类
         Object o = clazz.newInstance();
         //为字段赋值
         Field[] fields = clazz.getDeclaredFields();
@@ -311,8 +316,8 @@ public class ComponentScan {
         Method[] methods = clazz.getDeclaredMethods();
         for (Method method : methods) {
             if ((jerryRequestMapping = method.getAnnotation(JerryRequestMapping.class)) != null) {
-                JerryHandlerMethod jerryHandlerMethod =
-                        new JerryHandlerMethod(method,
+                JerryControllerHandlerMethod jerryControllerHandlerMethod =
+                        new JerryControllerHandlerMethod(method,
                                 o,
                                 method.getParameters(),
                                 method.getReturnType(),
@@ -324,7 +329,7 @@ public class ComponentScan {
                 } else {
                     logger.info("注入:" + requestMapping);
                     jerryContext.setControllerMethod(requestMapping,
-                            jerryHandlerMethod);
+                            jerryControllerHandlerMethod);
                 }
             }
         }

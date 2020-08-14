@@ -3,6 +3,8 @@ package server.modal;
 import com.alibaba.fastjson.JSONObject;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
+import java.io.File;
+
 /**
  * @author 陈龙
  * @version 1.0
@@ -12,8 +14,20 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 public class HttpJerryResponse {
     //响应状态
     private HttpResponseStatus responseStatus;
+    //
+    private File file;
     //响应体
     private Object o;
+    //响应头
+    private String CONTENT_TYPE;
+
+    public File getFile() {
+        return file;
+    }
+
+    public void setFile(File file) {
+        this.file = file;
+    }
 
     public HttpResponseStatus getResponseStatus() {
         return responseStatus;
@@ -29,6 +43,17 @@ public class HttpJerryResponse {
 
     public void setO(Object o) {
         this.o = o;
+    }
+
+    public String getCONTENT_TYPE() {
+        if (CONTENT_TYPE == null) {
+            return "text/json; charset=UTF-8";
+        }
+        return CONTENT_TYPE;
+    }
+
+    public void setCONTENT_TYPE(String CONTENT_TYPE) {
+        this.CONTENT_TYPE = CONTENT_TYPE;
     }
 
     @Override

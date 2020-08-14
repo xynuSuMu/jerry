@@ -25,7 +25,7 @@ public class Main {
         pkg = pkg.replace(".", File.separator);
         ComponentScan componentScan = new ComponentScan(url);
         //扫描Mapper
-        MapperScan mapperScan =this.getClass().getAnnotation(MapperScan.class);
+        MapperScan mapperScan = this.getClass().getAnnotation(MapperScan.class);
         if (mapperScan != null) {
             componentScan.scanMapper(mapperScan.pkg());
         }

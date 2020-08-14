@@ -9,10 +9,12 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import server.modal.HttpJerryRequest;
+import server.modal.HttpJerryResponse;
 import server.modal.ParamModal;
 import web.WebAppManager;
 
@@ -65,7 +67,10 @@ public class JerryServer {
 //                            pipeline.addLast("ssl", new SslHandler(sslEngine));
                             pipeline.addLast(new HttpServerCodec());// http 编解码
                             pipeline.addLast("httpAggregator", new HttpObjectAggregator(512 * 1024)); // http 消息聚合器                                                                     512*1024为接收的最大contentlength
+                            pipeline.addLast(new ChunkedWriteHandler());
                             pipeline.addLast(new HttpHandler());// 请求处理器
+//                            pipeline.addLast(new Adapter());// 请求处理器
+
                         }
                     });
 
@@ -113,13 +118,16 @@ public class JerryServer {
             if (url.contains("?")) {
                 url = url.split("\\?")[0];
             }
-//            logger.info("请求URL,{}", url);
+            logger.info("请求URL,{}", url);
             paramModal.setUrl(url);
             HttpHeaders httpHeaders = fullHttpRequest.headers();
             HttpJerryRequest httpJerryRequest = new HttpJerryRequest();
             httpJerryRequest.setUrl(url);
             httpJerryRequest.setHttpHeaders(httpHeaders);
             paramModal.setHttpJerryRequest(httpJerryRequest);
+            paramModal.setHttpJerryResponse(new HttpJerryResponse());
+            paramModal.setKeepAlive(HttpHeaders.isKeepAlive(fullHttpRequest));
+            paramModal.setProtocolVersion(fullHttpRequest.getProtocolVersion());
             //寻找相关应用接口
             searchApplication(ctx, paramModal);
         }
@@ -134,11 +142,14 @@ public class JerryServer {
         private void searchApplication(ChannelHandlerContext ctx, ParamModal modal) {
             //TODO:WebApp1后续改进方向：实现应用隔离
             try {
-                ctx.writeAndFlush(new WebAppManager().response(modal)).addListener(ChannelFutureListener.CLOSE);
+                modal.setContext(ctx);
+                new WebAppManager().response(modal);
+//                ctx.writeAndFlush(new WebAppManager().response(modal)).addListener(ChannelFutureListener.CLOSE);
             } catch (Exception e) {
                 e.printStackTrace();
             }
             sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 }

@@ -49,7 +49,7 @@ public class ServiceProxy implements InvocationHandler {
             invoke = method.invoke(obj, args);
         } catch (Exception e) {
             if (sqlSession != null) {
-                logger.info("回滚");
+                logger.info("异常回滚");
                 sqlSession.rollback();
                 sqlSession.close();
             }

@@ -1,6 +1,8 @@
 package server.modal;
 
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpVersion;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,10 +14,15 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ParamModal {
 
+    HttpVersion protocolVersion;
+    boolean keepAlive;
+    //请求方法
     private HttpMethod httpMethod;
     private String url;
     private HttpJerryRequest httpJerryRequest;
     private HttpJerryResponse httpJerryResponse;
+    //
+    private ChannelHandlerContext context;
 
     private Map<Object, Object> param = new ConcurrentHashMap<>();
 
@@ -29,6 +36,22 @@ public class ParamModal {
 
     public void setHttpMethod(HttpMethod httpMethod) {
         this.httpMethod = httpMethod;
+    }
+
+    public HttpVersion getProtocolVersion() {
+        return protocolVersion;
+    }
+
+    public void setProtocolVersion(HttpVersion protocolVersion) {
+        this.protocolVersion = protocolVersion;
+    }
+
+    public boolean isKeepAlive() {
+        return keepAlive;
+    }
+
+    public void setKeepAlive(boolean keepAlive) {
+        this.keepAlive = keepAlive;
     }
 
     public String getUrl() {
@@ -47,15 +70,19 @@ public class ParamModal {
         this.httpJerryRequest = httpJerryRequest;
     }
 
-    public void setParam(Map<Object, Object> param) {
-        this.param = param;
-    }
-
     public HttpJerryResponse getHttpJerryResponse() {
         return httpJerryResponse;
     }
 
     public void setHttpJerryResponse(HttpJerryResponse httpJerryResponse) {
         this.httpJerryResponse = httpJerryResponse;
+    }
+
+    public ChannelHandlerContext getContext() {
+        return context;
+    }
+
+    public void setContext(ChannelHandlerContext context) {
+        this.context = context;
     }
 }

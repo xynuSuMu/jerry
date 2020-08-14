@@ -4,6 +4,8 @@ import annotation.*;
 import com.alibaba.fastjson.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import webapp.app1.TestServiceInter;
+import webapp.app1.TestView;
 
 
 /**
@@ -11,9 +13,9 @@ import org.slf4j.LoggerFactory;
  * @version 1.0
  * @date 2020-07-27 16:20
  */
-@JerryController
-@JerryRequestMapping("/test")
-public class Test {
+@JerryRestController
+@JerryRequestMapping("/rest")
+public class RestTest {
 
     @JerryAutowired()
     private TestServiceInter testService;
@@ -49,7 +51,7 @@ public class Test {
     public String sys4(@Param(value = "code") String code, @Param(value = "email") String email, @Param(value = "JSON") TestView testView, @Param(value = "x") Integer x) {
         logger.info("sys2我是测试数据，😄哈哈2、" + x + "->" + code + "->" + email + "->" + JSONObject.toJSONString(testView));
 
-        return "testMapper.xml";
+        return testService2.sys();
     }
 }
 
