@@ -116,11 +116,17 @@ public class ComponentScan {
                 //如果是class文件我们就放入我们的集合中,替换url是获取包名
                 String pkg = jarEntryName
                         .replace(url, "");
-                for (String finalPkg : finalPkgs) {
-                    if (finalPkg == null || pkg.startsWith(finalPkg)) {
-                        pkg = pkg.replace("/", ".").substring(0, pkg.length() - 6);
-                        Class<?> clazz = Class.forName(pkg);
-                        recordInterFace(clazz);
+                if (finalPkgs == null) {
+                    pkg = pkg.replace("/", ".").substring(0, pkg.length() - 6);
+                    Class<?> clazz = Class.forName(pkg);
+                    recordInterFace(clazz);
+                } else {
+                    for (String finalPkg : finalPkgs) {
+                        if (pkg.startsWith(finalPkg)) {
+                            pkg = pkg.replace("/", ".").substring(0, pkg.length() - 6);
+                            Class<?> clazz = Class.forName(pkg);
+                            recordInterFace(clazz);
+                        }
                     }
                 }
             }

@@ -31,12 +31,12 @@ public class TestService implements TestServiceInter {
     public String sys() {
         testServiceInter2.sysV2();
         System.out.println(userMapper + "userMapper");
-//        List<User> list = userMapper.selectUser();
+        List<User> list = userMapper.selectUser();
 //        userMapper.updateUser();
 //
 //        userMapper.updateUserV2();
 //        logger.info("---" + (1 / 0));
-//        logger.info(list.size() + "");
+        logger.info(list.size() + "");
         logger.info("di");
 
         return "DI";
