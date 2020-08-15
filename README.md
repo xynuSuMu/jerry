@@ -25,6 +25,8 @@
 TODO:
 
 * controller支持数据类型完善
+* 集成Quartz定时任务调度
+* 支持https请求
 
 
 maven打包后，启动：java -Djava.ext.dirs=./lib -cp jerry-1.0-SNAPSHOT.jar Main > 1.out

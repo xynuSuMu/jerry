@@ -68,6 +68,8 @@ public class JerryContext {
                 list.add(entry.getKey());
             }
         }
+        if (list.isEmpty())
+            return null;
         int index = 0;
         Comparator<String> comparator = copyAntPathMatcher.getPatternComparator(path);
         for (int i = 1; i < list.size(); i++) {
