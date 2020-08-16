@@ -29,7 +29,7 @@ public class Main {
         if (mapperScan != null) {
             componentScan.scanMapper(mapperScan.pkg());
         }
-        //扫描组件
+        //扫描组件(包含Controller、RestController、Service、Job)
         componentScan.scanComponent(pkg);
         //启动服务
         new JerryServer().start(8088);

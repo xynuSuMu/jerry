@@ -9,9 +9,11 @@ import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import org.quartz.Job;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proxy.CGServiceProxy;
+import quartz.QuartzApplication;
 import transaction.SqlSessionTemplate;
 import web.interceptor.support.InterceptorSupport;
 import web.interceptor.support.WebMvcSupport;
@@ -192,8 +194,15 @@ public class ComponentScan {
         if (service != null) {
             handlerComponent(clazz);
         }
+
+        //Job注解
+        JerryJob jerryJob = clazz.getAnnotation(JerryJob.class);
+        if (jerryJob != null) {
+            handlerJob(clazz);
+        }
     }
 
+    QuartzApplication quartzApplication = new QuartzApplication();
 
     private Object handlerComponent(Class<?> clazz) throws Exception {
         if (cacheObj.containsKey(clazz)) {
@@ -339,6 +348,26 @@ public class ComponentScan {
                 }
             }
         }
+    }
+
+    //处理控制层方法
+    private void handlerJob(Class<?> clazz) throws Exception {
+
+        Object o = clazz.newInstance();
+        //为字段赋值
+        Field[] fields = clazz.getDeclaredFields();
+        for (Field field : fields) {
+            field.setAccessible(true);
+            if (field.get(o) == null) {
+                Object proxy = handlerComponent(field.getType());
+                field.set(o, proxy);
+            }
+        }
+        if (o instanceof Job) {
+            quartzApplication.start(o);
+        }
+
+
     }
 
 }
