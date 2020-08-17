@@ -1,11 +1,13 @@
 package quartz;
 
+import context.JerryContext;
 import org.quartz.Job;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.spi.JobFactory;
 import org.quartz.spi.TriggerFiredBundle;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 /**
@@ -14,6 +16,10 @@ import java.lang.reflect.Method;
  * @Description:
  */
 public class JobFactoryAdapt implements JobFactory {
+
+    //
+    private JerryContext jerryContext = JerryContext.getInstance();
+
     @Override
     public Job newJob(TriggerFiredBundle triggerFiredBundle, Scheduler scheduler) throws SchedulerException {
         return newJob(triggerFiredBundle);
@@ -29,12 +35,22 @@ public class JobFactoryAdapt implements JobFactory {
     }
 
     protected Object createJobInstance(TriggerFiredBundle bundle) throws Exception {
-        // Reflectively adapting to differences between Quartz 1.x and Quartz 2.0...
         Method getJobDetail = bundle.getClass().getMethod("getJobDetail");
-        Object jobDetail = getJobDetail.invoke(bundle);// ReflectionUtils.invokeMethod(getJobDetail, bundle);
+        Object jobDetail = getJobDetail.invoke(bundle);
         Method getJobClass = jobDetail.getClass().getMethod("getJobClass");
         Class jobClass = (Class) getJobClass.invoke(jobDetail);
-        return jobClass.newInstance();
+        //为字段赋值
+        Object o = jobClass.newInstance();
+        Field[] fields = jobClass.getDeclaredFields();
+        for (Field field : fields) {
+            field.setAccessible(true);
+            if (field.get(o) == null) {
+                Object proxy = jerryContext.getBean(field.getType().getName());
+                if (proxy != null)
+                    field.set(o, proxy);
+            }
+        }
+        return o;
     }
 
     protected Job adaptJob(Object jobObject) throws Exception {

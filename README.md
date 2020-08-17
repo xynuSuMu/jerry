@@ -20,12 +20,12 @@
 * 模拟实现Spring的拦截器(Ant路径匹配方式来支持通配符)
 * 请求路径支持通配符匹配
 * 支持html请求
+* 集成Quartz定时任务调度
 * Jar包启动:java -Djava.ext.dirs=./lib -cp jerry-1.0-SNAPSHOT.jar Main > 1.out
 
 TODO:
 
-* controller支持数据类型完善
-* 集成Quartz定时任务调度
+* controller支持数据类型完善，目前只支持GET和POST
 * 支持https请求
 
 

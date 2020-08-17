@@ -1,6 +1,7 @@
 package scan;
 
 import annotation.*;
+import annotation.job.JerryJob;
 import context.JerryContext;
 import exception.JerryException;
 import handler.JerryControllerHandlerMethod;
@@ -9,11 +10,11 @@ import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
-import org.quartz.Job;
+import org.quartz.*;
+import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proxy.CGServiceProxy;
-import quartz.QuartzApplication;
 import transaction.SqlSessionTemplate;
 import web.interceptor.support.InterceptorSupport;
 import web.interceptor.support.WebMvcSupport;
@@ -21,7 +22,6 @@ import web.interceptor.support.WebMvcSupport;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -29,6 +29,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+
+import static org.quartz.CronScheduleBuilder.*;
 
 /**
  * @author 陈龙
@@ -39,22 +41,43 @@ public class ComponentScan {
 
     private static JerryContext jerryContext = JerryContext.getInstance();
 
-
+    //后缀
     private final String suffix = ".class";
 
     //缓存解决循环依赖
     private Map<Class<?>, Object> cacheObj = new HashMap<>();
     //所有的class
     private List<Class<?>> classes = new CopyOnWriteArrayList<>();
-    //接口
+    //
+    private List<Class<?>> jobClasses = new CopyOnWriteArrayList<>();
+    //所有的接口
     private Map<Class<?>, List<Class<?>>> inter = new ConcurrentHashMap<>();
 
     private String url;
 
     private Logger logger = LoggerFactory.getLogger(this.getClass());
 
+    //定时任务
+    private static Scheduler scheduler = null;
+
     public ComponentScan(String url) {
         this.url = url;
+    }
+
+    static {
+        InputStream inputStream;
+        try {
+            inputStream = Resources.getResourceAsStream("quartz.properties");
+            StdSchedulerFactory stdSchedulerFactory = new StdSchedulerFactory();
+            stdSchedulerFactory.initialize(inputStream);
+            scheduler = stdSchedulerFactory.getScheduler();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (SchedulerException e) {
+            e.printStackTrace();
+        }
+
+
     }
 
     public void scanMapper(String[] pkgs) throws Exception {
@@ -93,13 +116,20 @@ public class ComponentScan {
         } else {//扫描文件夹
             scanClasses(new File(searchPath));
         }
-        //DI
+        //Controller,Service,Config
         for (Class<?> clazz : classes) {
             di(clazz);
         }
+        //Job
+        for (Class<?> clazz : jobClasses) {
+            handlerJob(clazz);
+        }
+        //启动调度
+        scheduler.start();
         //销毁
         classes = null;
         cacheObj = null;
+        jobClasses = null;
     }
 
     private void findClassJar(final String path, final String[] finalPkgs) throws Exception {
@@ -194,15 +224,13 @@ public class ComponentScan {
         if (service != null) {
             handlerComponent(clazz);
         }
-
         //Job注解
         JerryJob jerryJob = clazz.getAnnotation(JerryJob.class);
         if (jerryJob != null) {
-            handlerJob(clazz);
+            jobClasses.add(clazz);
         }
     }
 
-    QuartzApplication quartzApplication = new QuartzApplication();
 
     private Object handlerComponent(Class<?> clazz) throws Exception {
         if (cacheObj.containsKey(clazz)) {
@@ -350,24 +378,27 @@ public class ComponentScan {
         }
     }
 
-    //处理控制层方法
+
+    //处理Job
     private void handlerJob(Class<?> clazz) throws Exception {
 
-        Object o = clazz.newInstance();
-        //为字段赋值
-        Field[] fields = clazz.getDeclaredFields();
-        for (Field field : fields) {
-            field.setAccessible(true);
-            if (field.get(o) == null) {
-                Object proxy = handlerComponent(field.getType());
-                field.set(o, proxy);
-            }
-        }
-        if (o instanceof Job) {
-            quartzApplication.start(o);
-        }
+        JerryJob jerryJob = clazz.getAnnotation(JerryJob.class);
+
+        //2.创建JobDetail
+        JobDetail job = JobBuilder
+                .newJob((Class<? extends Job>) clazz)
+                .withIdentity(jerryJob.name(), jerryJob.group())//job的name和group
+                .build();
+
+        //Cron
+        Trigger trigger = TriggerBuilder.newTrigger()
+                .withIdentity("trigger", "Tgr_group")
+                .withSchedule(cronSchedule(jerryJob.cron()))
+                .forJob(job)
+                .build();
 
 
+        scheduler.scheduleJob(job, trigger);
     }
 
 }
