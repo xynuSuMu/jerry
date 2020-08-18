@@ -1,9 +1,11 @@
 
-import annotation.MapperScan;
+import annotation.mapper.MapperScan;
+import context.Resource;
 import scan.ComponentScan;
 import server.JerryServer;
 
 import java.io.*;
+import java.util.PropertyResourceBundle;
 
 /**
  * @author 陈龙
@@ -20,28 +22,23 @@ public class Main {
     }
 
     public void init() throws Exception {
-        String pkg = "";
+//        String pkg = "";
         String url = this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
-        pkg = pkg.replace(".", File.separator);
+//        pkg = pkg.replace(".", File.separator);
         ComponentScan componentScan = new ComponentScan(url);
         //扫描Mapper
         MapperScan mapperScan = this.getClass().getAnnotation(MapperScan.class);
+        String[] mapperPath = {};
         if (mapperScan != null) {
-            componentScan.scanMapper(mapperScan.pkg());
+            mapperPath = mapperScan.pkg();
         }
-        //扫描组件(包含Controller、RestController、Service、Job)
-        componentScan.scanComponent(pkg);
+        //扫描组件(包含Mapper、Controller、RestController、Service、Job)
+        componentScan.scanComponent(mapperPath);
+        //配置文件
+        PropertyResourceBundle propertyResourceBundle = new PropertyResourceBundle(Resource.getJerryCfg());
         //启动服务
-        new JerryServer().start(8088);
+        new JerryServer().start(Integer.parseInt(propertyResourceBundle.getString("port")));
     }
 
 
 }
-//首先判断webApp下有几个jar包，其次分配类加载器加载，根据URL和类加载器找到响应的请求方法，顶层核心类不能打破双亲委派
-
-
-//String url = this.getClass().getResource("/").getPath();¬
-
-//https://blog.csdn.net/ystyaoshengting/article/details/50698865
-
-//关于TomCat https://blog.csdn.net/varyall/article/details/81610620

@@ -1,4 +1,4 @@
-package annotation;
+package annotation.mapper;
 
 import java.lang.annotation.*;
 

@@ -5,7 +5,9 @@ import annotation.JerryConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import web.interceptor.InterceptorRegistry;
-import web.interceptor.support.WebMvcSupport;
+import web.resource.ResourceHandlerRegistry;
+import web.support.WebMvcSupport;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,9 +29,15 @@ public class WebMvcSupportConfig extends WebMvcSupport {
     protected void addInterceptors(InterceptorRegistry registry) {
         List<String> includePatterns = new ArrayList<>();
         logger.info("自定义注册拦截");
-        includePatterns.add("/**/*");
+        includePatterns.add("/test/sy*");
         registry.addInterceptor(myInterceptor).addPathPatterns(includePatterns);
         super.addInterceptors(registry);
     }
 
+
+    @Override
+    protected void addResource(ResourceHandlerRegistry registry) {
+        registry.addResource("/doc/**/*.md");
+        super.addResource(registry);
+    }
 }

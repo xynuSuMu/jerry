@@ -29,30 +29,17 @@ public class RestTest {
     @JerryRequestMapping(value = "/sys", method = RequestMethod.GET)
     public String sys(@Param(value = "url") String url) {
         logger.info("我是测试数据，😄哈哈" + url);
-        testService.sys();
-        return "index.html";
+       ;
+        return "index.html-"+ testService.sys();
     }
 
-    @JerryRequestMapping(value = "/sys?", method = RequestMethod.POST)
-    public String sys2(@Param(value = "code") String code, @Param(value = "email") String email, @Param(value = "JSON") TestView testView, @Param(value = "x") Integer x) {
-        logger.info("sys?我是测试数据，😄哈哈2、" + x + "->" + code + "->" + email + "->" + JSONObject.toJSONString(testView));
+    @JerryRequestMapping(value = "/sys?", method = RequestMethod.GET)
+    public String sys2(@Param(value = "code") String code, @Param(value = "email") String email) {
 
-        return testService2.sys();
+        return testService2.sys2();
     }
 
-    @JerryRequestMapping(value = "/sys*", method = RequestMethod.POST)
-    public String sys3(@Param(value = "code") String code, @Param(value = "email") String email, @Param(value = "JSON") TestView testView, @Param(value = "x") Double x) {
-        logger.info("sys*我是测试数据，😄哈哈2、" + x + "->" + code + "->" + email + "->" + JSONObject.toJSONString(testView));
 
-        return testService2.sys();
-    }
-
-    @JerryRequestMapping(value = "/sys2", method = RequestMethod.POST)
-    public String sys4(@Param(value = "code") String code, @Param(value = "email") String email, @Param(value = "JSON") TestView testView, @Param(value = "x") Integer x) {
-        logger.info("sys2我是测试数据，😄哈哈2、" + x + "->" + code + "->" + email + "->" + JSONObject.toJSONString(testView));
-
-        return testService2.sys();
-    }
 }
 
 

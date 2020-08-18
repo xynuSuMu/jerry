@@ -32,7 +32,7 @@ public class MyInterceptor implements HandlerInterceptor {
             }
         }
         System.out.println("请求拦截");
-        return true;
+        return false;
     }
 
     @Override

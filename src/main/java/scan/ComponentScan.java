@@ -3,10 +3,11 @@ package scan;
 import annotation.*;
 import annotation.job.JerryJob;
 import context.JerryContext;
+import context.Resource;
+import database.JerrySqlSessionFactory;
 import exception.JerryException;
 import handler.JerryControllerHandlerMethod;
 import net.sf.cglib.proxy.Enhancer;
-import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
@@ -15,9 +16,9 @@ import org.quartz.impl.StdSchedulerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proxy.CGServiceProxy;
-import transaction.SqlSessionTemplate;
-import web.interceptor.support.InterceptorSupport;
-import web.interceptor.support.WebMvcSupport;
+import database.SqlSessionTemplate;
+import web.support.InterceptorSupport;
+import web.support.WebMvcSupport;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,11 +47,14 @@ public class ComponentScan {
 
     //缓存解决循环依赖
     private Map<Class<?>, Object> cacheObj = new HashMap<>();
-    //所有的class
+
+    //所有的非Mapper class
     private List<Class<?>> classes = new CopyOnWriteArrayList<>();
-    //
+    //所有的mapper class
+    private List<Class<?>> mapperClasses = new CopyOnWriteArrayList<>();
+    //所有的Job
     private List<Class<?>> jobClasses = new CopyOnWriteArrayList<>();
-    //所有的接口
+    //所有存在实现类接口
     private Map<Class<?>, List<Class<?>>> inter = new ConcurrentHashMap<>();
 
     private String url;
@@ -67,7 +71,7 @@ public class ComponentScan {
     static {
         InputStream inputStream;
         try {
-            inputStream = Resources.getResourceAsStream("quartz.properties");
+            inputStream = Resource.getQuartzCfg();
             StdSchedulerFactory stdSchedulerFactory = new StdSchedulerFactory();
             stdSchedulerFactory.initialize(inputStream);
             scheduler = stdSchedulerFactory.getScheduler();
@@ -80,42 +84,9 @@ public class ComponentScan {
 
     }
 
-    public void scanMapper(String[] pkgs) throws Exception {
-        String resource = "mybatis-config.xml";
-        InputStream inputStream = Resources.getResourceAsStream(resource);
-        SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
-        jerryContext.setSqlSession(sqlSessionFactory);
-        SqlSession sqlSession = new SqlSessionTemplate(sqlSessionFactory);
-        if (url.endsWith("jar")) {//扫描jar包
-            findClassJar(url, pkgs);
-        } else {
-            for (String pkg : pkgs) {
-                String searchPath = url + pkg;
-                //扫描文件夹
-                scanClasses(new File(searchPath));
-            }
-        }
-        for (Class<?> clazz : classes) {
-            if (clazz.isInterface()) {
-                Object o = sqlSession.getMapper(clazz);
-                if (o != null) {
-                    String name = clazz.getName();
-                    String beanId = name.substring(0, 1).toLowerCase() + name.substring(1);
-                    jerryContext.setBean(beanId, o);
-                }
-            }
-        }
-        classes.clear();
-    }
-
-    public void scanComponent(String pkg) throws Exception {
-        //然后把classpath和basePack合并
-        String searchPath = url + pkg;
-        if (searchPath.endsWith("jar")) {//扫描jar包
-            findClassJar(searchPath, null);
-        } else {//扫描文件夹
-            scanClasses(new File(searchPath));
-        }
+    public void scanComponent(String[] mapperPath) throws Exception {
+        //mapperScan
+        scanMapper(mapperPath);
         //Controller,Service,Config
         for (Class<?> clazz : classes) {
             di(clazz);
@@ -130,6 +101,30 @@ public class ComponentScan {
         classes = null;
         cacheObj = null;
         jobClasses = null;
+    }
+
+
+    private void scanMapper(String[] pkgs) throws Exception {
+        //默认SqlSessionFactory
+        SqlSession sqlSession = new SqlSessionTemplate(JerrySqlSessionFactory.getSqlSessionFactory(null));
+        if (url.endsWith("jar")) {//扫描jar包
+            findClassJar(url, pkgs);
+        } else {
+            //扫描文件夹
+            scanClasses(new File(url), pkgs);
+
+        }
+        for (Class<?> clazz : mapperClasses) {
+            if (clazz.isInterface()) {
+                Object o = sqlSession.getMapper(clazz);
+                if (o != null) {
+                    String name = clazz.getName();
+                    String beanId = name.substring(0, 1).toLowerCase() + name.substring(1);
+                    jerryContext.setBean(beanId, o);
+                }
+            }
+        }
+        mapperClasses.clear();
     }
 
     private void findClassJar(final String path, final String[] finalPkgs) throws Exception {
@@ -148,40 +143,50 @@ public class ComponentScan {
                 //如果是class文件我们就放入我们的集合中,替换url是获取包名
                 String pkg = jarEntryName
                         .replace(url, "");
-                if (finalPkgs == null) {
+                boolean isMapper = false;
+                for (String finalPkg : finalPkgs) {
+                    if (pkg.startsWith(finalPkg)) {
+                        pkg = pkg.replace("/", ".").substring(0, pkg.length() - 6);
+                        Class<?> clazz = Class.forName(pkg);
+                        isMapper = true;
+                        mapperClasses.add(clazz);
+                    }
+                }
+                if (!isMapper) {
                     pkg = pkg.replace("/", ".").substring(0, pkg.length() - 6);
                     Class<?> clazz = Class.forName(pkg);
                     recordInterFace(clazz);
-                } else {
-                    for (String finalPkg : finalPkgs) {
-                        if (pkg.startsWith(finalPkg)) {
-                            pkg = pkg.replace("/", ".").substring(0, pkg.length() - 6);
-                            Class<?> clazz = Class.forName(pkg);
-                            recordInterFace(clazz);
-                        }
-                    }
                 }
             }
         }
     }
 
-    private void scanClasses(File file) throws Exception {
+    private void scanClasses(File file, final String[] finalPkgs) throws Exception {
         if (file.isDirectory()) {//文件夹
             //文件夹我们就递归
             File[] files = file.listFiles();
             for (File f1 : files) {
-                scanClasses(f1);
+                scanClasses(f1, finalPkgs);
             }
         } else {
             //判断是否是class文件
             if (file.getName().endsWith(suffix)) {
-                //如果是class文件我们就放入我们的集合中,替换url是获取包名
                 String pkg = file.getPath()
-                        .replace(url, "")
-                        .replace("/", ".");
-                pkg = pkg.substring(0, pkg.length() - 6);
-                Class<?> clazz = Class.forName(pkg);
-                recordInterFace(clazz);
+                        .replace(url, "");
+                boolean isMapper = false;
+                for (String finalPkg : finalPkgs) {
+                    if (pkg.startsWith(finalPkg)) {
+                        pkg = pkg.replace("/", ".").substring(0, pkg.length() - 6);
+                        Class<?> clazz = Class.forName(pkg);
+                        isMapper = true;
+                        mapperClasses.add(clazz);
+                    }
+                }
+                if (!isMapper) {
+                    pkg = pkg.replace("/", ".").substring(0, pkg.length() - 6);
+                    Class<?> clazz = Class.forName(pkg);
+                    recordInterFace(clazz);
+                }
             }
         }
     }
@@ -205,6 +210,7 @@ public class ComponentScan {
 
     private void di(Class<?> clazz) throws Exception {
         JerryConfig jerryConfig = clazz.getAnnotation(JerryConfig.class);
+        //Config
         if (jerryConfig != null) {
             Object o = handlerComponent(clazz);
             if (o instanceof WebMvcSupport) {
@@ -277,12 +283,12 @@ public class ComponentScan {
         }
         Object instance = clazz.newInstance();
         if (instance != null) {
-            //使用 CGLIB
+            //使用 CGLIB 代理
             Enhancer enhancer = new Enhancer();
             enhancer.setSuperclass(clazz);
             enhancer.setCallback(new CGServiceProxy());
             o = enhancer.create();
-            //使用代理类
+            //弃用代理类
 //            o = Proxy.newProxyInstance(instance.getClass().getClassLoader(),
 //                    instance.getClass().getInterfaces(),
 //                    new ServiceProxy(instance));

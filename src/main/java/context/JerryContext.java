@@ -4,6 +4,7 @@ import handler.JerryControllerHandlerMethod;
 import org.apache.ibatis.session.SqlSessionFactory;
 import util.CopyAntPathMatcher;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -18,15 +19,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class JerryContext {
     private static final JerryContext jerryContext = new JerryContext();
 
+    private JerryContext() {
 
-    private SqlSessionFactory sqlSessionFactory;
-
-    public void setSqlSession(SqlSessionFactory sqlSessionFactory) {
-        this.sqlSessionFactory = sqlSessionFactory;
     }
 
-    public SqlSessionFactory getSqlSessionFactory() {
-        return sqlSessionFactory;
+    public synchronized static JerryContext getInstance() {
+        return jerryContext;
     }
 
     //存储Bean
@@ -36,12 +34,16 @@ public class JerryContext {
     //存储URL对应的控制层方法
     private Map<String, JerryControllerHandlerMethod> controllerMethod = new ConcurrentHashMap<>();
 
-    private JerryContext() {
+    //Mybatis
+    private SqlSessionFactory sqlSessionFactory;
 
+
+    public void setSqlSession(SqlSessionFactory sqlSessionFactory) {
+        this.sqlSessionFactory = sqlSessionFactory;
     }
 
-    public synchronized static JerryContext getInstance() {
-        return jerryContext;
+    public SqlSessionFactory getSqlSessionFactory() {
+        return sqlSessionFactory;
     }
 
     public List<Object> getBeans() {

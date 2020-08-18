@@ -4,14 +4,24 @@
         "http://mybatis.org/dtd/mybatis-3-config.dtd">
 <configuration>
     <properties resource="db.properties"></properties>
-    <environments default="development">
-        <environment id="development">
+    <environments default="dataSource">
+        <environment id="dataSource">
             <transactionManager type="JDBC"/>
             <dataSource type="POOLED">
                 <property name="driver" value="${jdbc.driverClass}"/>
                 <property name="url" value="${jdbc.jdbcUrl}"/>
                 <property name="username" value="${jdbc.user}"/>
                 <property name="password" value="${jdbc.password}"/>
+            </dataSource>
+        </environment>
+
+        <environment id="dataSource2">
+            <transactionManager type="JDBC" />
+            <dataSource type="POOLED">
+                <property name="driver" value="${jdbc.driverClass}"/>
+                <property name="url" value="${jdbc.jdbcUrl2}"/>
+                <property name="username" value="${jdbc.user2}"/>
+                <property name="password" value="${jdbc.password2}"/>
             </dataSource>
         </environment>
     </environments>

@@ -1,4 +1,4 @@
-package transaction;
+package database;
 
 import org.apache.ibatis.cursor.Cursor;
 import org.apache.ibatis.executor.BatchResult;

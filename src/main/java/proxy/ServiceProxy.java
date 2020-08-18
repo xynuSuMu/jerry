@@ -1,12 +1,12 @@
 package proxy;
 
-import annotation.JerryTranscational;
+import annotation.mapper.JerryTranscational;
 import context.JerryContext;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import transaction.TransactionManage;
+import database.TransactionManage;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;

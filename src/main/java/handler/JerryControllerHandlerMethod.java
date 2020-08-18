@@ -60,6 +60,7 @@ public class JerryControllerHandlerMethod {
         if (requestMethods != RequestMethod.EMPTY &&
                 !httpMethod.name().equals(requestMethods.name())) {
             httpJerryResponse.setResponseStatus(HttpResponseStatus.METHOD_NOT_ALLOWED);
+            return;
         }
         Object[] params = new Object[parameterTypes.length];
         //get请求
@@ -115,7 +116,7 @@ public class JerryControllerHandlerMethod {
                     }
                     Properties properties = Resources.getResourceAsProperties("jerry.properties");
 
-                    File temp = File.createTempFile(resource, properties.getProperty("suffix"));
+                    File temp = File.createTempFile(resource, properties.getProperty("html.suffix"));
                     BufferedInputStream bis = null;
                     BufferedOutputStream bos = null;
                     try {
@@ -137,7 +138,6 @@ public class JerryControllerHandlerMethod {
                             e.printStackTrace();
                         }
                     }
-//                    File file = Resources.getResourceAsFile(resource);
                     httpJerryResponse.setFile(temp);
                 } else {
                     httpJerryResponse.setO(o1);

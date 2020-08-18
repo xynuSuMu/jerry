@@ -17,10 +17,9 @@ import server.modal.HttpJerryRequest;
 import server.modal.HttpJerryResponse;
 import server.modal.ParamModal;
 import web.interceptor.Chain;
-import web.interceptor.support.InterceptorSupport;
+import web.support.InterceptorSupport;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.RandomAccessFile;
 import java.util.Map;
 
@@ -43,21 +42,35 @@ public class WebAppManager {
         Map<Object, Object> param = modal.getParam();
         ChannelHandlerContext context = modal.getContext();
         String url = modal.getUrl();
+        //拦截器链
         Chain.chain(
                 InterceptorSupport.getInstance().getRegistry().getInterceptors(),
                 modal.getHttpJerryRequest(),
                 httpJerryResponse,
                 null);
+        //响应
+        HttpResponse response;
+        if (httpJerryResponse.getResponseStatus() == HttpResponseStatus.FORBIDDEN) {
+            response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, httpJerryResponse.getResponseStatus(),
+                    Unpooled.copiedBuffer("Fail:" + httpJerryResponse.getResponseStatus().code(), CharsetUtil.UTF_8));
+            context.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+            return;
+        }
         //寻找RequestMapping对应的控制层方法
         JerryControllerHandlerMethod jerryControllerHandlerMethod = jerryContext.getRequestMethod(url);
         if (jerryControllerHandlerMethod == null) {
-            httpJerryResponse.setResponseStatus(HttpResponseStatus.NOT_FOUND);
+            //TODO:判断资源路径中是否存在
+
+            boolean temp = InterceptorSupport.getInstance().getResource().isResource(url);
+            if (temp) {
+                System.out.println("资源请求" + url);
+                httpJerryResponse.setFile(InterceptorSupport.getInstance().getResource().getResource(url));
+            } else {
+                httpJerryResponse.setResponseStatus(HttpResponseStatus.NOT_FOUND);
+            }
         } else {
             jerryControllerHandlerMethod.handlerRequestMethod(httpMethod, httpJerryRequest, httpJerryResponse, param);
         }
-
-        //响应
-        HttpResponse response;
         if (httpJerryResponse.getFile() != null) {
             File html = httpJerryResponse.getFile();//new File(path);
 //            FileInputStream file = new FileInputStream(html);

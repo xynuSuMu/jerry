@@ -7,4 +7,5 @@ package webapp.app1;
  */
 public interface TestServiceInter {
     String sys();
+    String sys2();
 }

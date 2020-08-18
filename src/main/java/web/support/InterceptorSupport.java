@@ -1,8 +1,7 @@
-package web.interceptor.support;
+package web.support;
 
-import annotation.JerryConfig;
-import web.interceptor.InterceptorRegistration;
 import web.interceptor.InterceptorRegistry;
+import web.resource.ResourceHandlerRegistry;
 
 /**
  * @author 陈龙
@@ -24,10 +23,16 @@ public class InterceptorSupport {
 
     public void mvcConfig(WebMvcSupport support) {
         support.addInterceptors(registry);
+        support.addResource(resource);
     }
 
     public InterceptorRegistry getRegistry() {
         return registry;
     }
 
+    private final static ResourceHandlerRegistry resource = new ResourceHandlerRegistry();
+
+    public ResourceHandlerRegistry getResource() {
+        return resource;
+    }
 }

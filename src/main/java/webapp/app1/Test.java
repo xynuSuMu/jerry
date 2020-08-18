@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
  * @date 2020-07-27 16:20
  */
 @JerryController
-@JerryRequestMapping("/test")
+@JerryRequestMapping()
 public class Test {
 
     @JerryAutowired()
@@ -52,7 +52,7 @@ public class Test {
         return "testMapper.xml";
     }
 
-    @JerryRequestMapping(value = "/doc", method = RequestMethod.POST)
+    @JerryRequestMapping(value = "/doc", method = RequestMethod.GET)
     public String doc() {
         return "doc.html";
     }
