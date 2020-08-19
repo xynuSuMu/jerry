@@ -63,7 +63,7 @@ public class WebAppManager {
 
             boolean temp = InterceptorSupport.getInstance().getResource().isResource(url);
             if (temp) {
-                System.out.println("资源请求" + url);
+//                System.out.println("资源请求" + url);
                 httpJerryResponse.setFile(InterceptorSupport.getInstance().getResource().getResource(url));
             } else {
                 httpJerryResponse.setResponseStatus(HttpResponseStatus.NOT_FOUND);

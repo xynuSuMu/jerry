@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import proxy.CGServiceProxy;
 import database.SqlSessionTemplate;
+import quartz.SchedulerManage;
 import web.support.InterceptorSupport;
 import web.support.WebMvcSupport;
 
@@ -75,6 +76,7 @@ public class ComponentScan {
             StdSchedulerFactory stdSchedulerFactory = new StdSchedulerFactory();
             stdSchedulerFactory.initialize(inputStream);
             scheduler = stdSchedulerFactory.getScheduler();
+            SchedulerManage.setScheduler(scheduler);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (SchedulerException e) {
@@ -372,6 +374,9 @@ public class ComponentScan {
                                 method.getReturnType(),
                                 jerryRequestMapping.method());
                 String requestMapping = requestMethodUrl + jerryRequestMapping.value();
+                if (!requestMapping.startsWith("/")) {
+                    requestMapping = "/" + requestMapping;
+                }
                 logger.info("request:{}", requestMapping);
                 if (jerryContext.getMethod(requestMapping) != null) {
                     throw new JerryException("requestMapping重复:" + requestMapping);
@@ -398,7 +403,7 @@ public class ComponentScan {
 
         //Cron
         Trigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity("trigger", "Tgr_group")
+                .withIdentity(jerryJob.name(), jerryJob.name() + jerryJob.group())
                 .withSchedule(cronSchedule(jerryJob.cron()))
                 .forJob(job)
                 .build();

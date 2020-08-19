@@ -29,7 +29,6 @@ public class CGServiceProxy implements MethodInterceptor {
         SqlSessionFactory sqlSessionFactory;
         boolean openTranscational = false;
         if (method.isAnnotationPresent(DataSourceSwitch.class)) {
-            System.out.println("切换数据源");
             DataSourceSwitch dataSourceSwitch = method.getAnnotation(DataSourceSwitch.class);
             sqlSessionFactory = JerrySqlSessionFactory.getSqlSessionFactory(dataSourceSwitch.value());
         } else {
@@ -37,7 +36,6 @@ public class CGServiceProxy implements MethodInterceptor {
         }
         sqlSession = TransactionManage.getResources();
         if (sqlSession == null) {
-            System.out.println("获取新的sqlSession");
             sqlSession = sqlSessionFactory.
                     openSession(sqlSessionFactory.getConfiguration().getDefaultExecutorType());
             TransactionManage.setResources(sqlSession);

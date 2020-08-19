@@ -22,7 +22,6 @@ public class MyJob implements Job {
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
-        System.out.println("第" + i++ + "次查询，查询数量:" + userMapper.selectUser().size());
-        System.out.println("任务调度===");
+        System.out.println("testJob - testGroup1");
     }
 }

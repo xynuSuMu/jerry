@@ -28,10 +28,60 @@
 <body>
 <div id="app">加载中...</div>
 <script>
-    window.$docsify = {
-        alias: {
-            '/directory/_sidebar.md': '/_sidebar.md',
+
+    //目录
+    var directory = [
+        'algorithm', 'javaBase', 'javaFloor', 'structure', 'usingJava',
+    ]
+    var string = "{";
+    for (var d in directory) {
+        string += '"/directory/' + directory[d] + '/_sidebar.md":"/_sidebar.md",';
+    }
+    //内容
+    var content = [
+        {
+            'req': '1_Algorithm/pat',
+            'ref': 'algorithm/PAT.md'
+        }, {
+            'req': '2_SourceCode/list',
+            'ref': 'javaFloor/SoruceCode.md'
+        }, {
+            'req': '2_SourceCode/map',
+            'ref': 'javaFloor/SoruceCode.md'
+        }, {
+            'req': '3_JVM',
+            'ref': 'javaFloor/JVM.md'
+        }, {
+            'req': '4_Using/Class',
+            'ref': 'usingJava/UseClass.md'
+        }, {
+            'req': '5_Structure/Stack',
+            'ref': 'structure/Stack.md'
+        }, {
+            'req': '5_Structure/Queue',
+            'ref': 'structure/Queue.md'
+        }, {
+            'req': '5_Structure/Linked',
+            'ref': 'structure/Linked.md'
+        }, {
+            'req': '5_Structure/Tree',
+            'ref': 'structure/Tree.md'
+        }, {
+            'req': '5_Structure/Graph',
+            'ref': 'structure/Graph.md'
         },
+    ]
+    //content
+    for (var d in content) {
+        string += '"/content/' + content[d].req + '/_sidebar.md":"/directory/' + content[d].ref + '",';
+    }
+    string = string.substr(0, string.length - 1);
+    string += "}";
+
+    console.log(string)
+    console.log(JSON.parse(string))
+    window.$docsify = {
+        alias: JSON.parse(string),
         loadSidebar: true,
         name: '每天学Java',
         auto2top: true

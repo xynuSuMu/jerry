@@ -34,17 +34,6 @@ public class JerryContext {
     //存储URL对应的控制层方法
     private Map<String, JerryControllerHandlerMethod> controllerMethod = new ConcurrentHashMap<>();
 
-    //Mybatis
-    private SqlSessionFactory sqlSessionFactory;
-
-
-    public void setSqlSession(SqlSessionFactory sqlSessionFactory) {
-        this.sqlSessionFactory = sqlSessionFactory;
-    }
-
-    public SqlSessionFactory getSqlSessionFactory() {
-        return sqlSessionFactory;
-    }
 
     public List<Object> getBeans() {
         List<Object> res = new ArrayList<>();

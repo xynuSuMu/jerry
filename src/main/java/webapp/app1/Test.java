@@ -51,11 +51,6 @@ public class Test {
 
         return "testMapper.xml";
     }
-
-    @JerryRequestMapping(value = "/doc", method = RequestMethod.GET)
-    public String doc() {
-        return "doc.html";
-    }
 }
 
 
