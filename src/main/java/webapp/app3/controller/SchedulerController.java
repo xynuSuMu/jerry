@@ -4,6 +4,7 @@ import annotation.JerryRequestMapping;
 import annotation.JerryRestController;
 import annotation.Param;
 import annotation.RequestMethod;
+import context.JerryContext;
 import org.quartz.*;
 import org.quartz.impl.matchers.GroupMatcher;
 import org.slf4j.Logger;
@@ -58,51 +59,35 @@ public class SchedulerController {
     }
 
 
-    @JerryRequestMapping(value =  "/pause",method = RequestMethod.GET)
+    @JerryRequestMapping(value = "/pause", method = RequestMethod.GET)
     public Boolean pause(@Param("triggerName") String triggerName, @Param("triggerGroup") String triggerGroup) throws SchedulerException {
         Scheduler scheduler = SchedulerManage.getScheduler();
         scheduler.pauseTrigger(new TriggerKey(triggerName, triggerGroup));
         return true;
     }
 
-    @JerryRequestMapping(value =  "/resume",method = RequestMethod.GET)
-    public void resumeTrigger(@Param("triggerName") String triggerName, @Param("triggerGroup") String triggerGroup) throws SchedulerException{
+    @JerryRequestMapping(value = "/resume", method = RequestMethod.GET)
+    public void resumeTrigger(@Param("triggerName") String triggerName, @Param("triggerGroup") String triggerGroup) throws SchedulerException {
         Scheduler scheduler = SchedulerManage.getScheduler();
         scheduler.resumeTrigger(new TriggerKey(triggerName, triggerGroup));
     }
 
-    @JerryRequestMapping(value =  "/exe",method = RequestMethod.GET)
+    @JerryRequestMapping(value = "/exe", method = RequestMethod.GET)
     public void exe(@Param("triggerName") String triggerName, @Param("triggerGroup") String triggerGroup) throws SchedulerException, IllegalAccessException, InstantiationException {
         Scheduler scheduler = SchedulerManage.getScheduler();
-
-//        TriggerKey target = new TriggerKey(triggerName, triggerGroup);
-//        Set<JobKey> rets = new HashSet<>();
-//        Set<JobKey> jobKeys = scheduler.getJobKeys(GroupMatcher.anyJobGroup());//GroupMatcher.jobGroupEquals(group)
-//        for(JobKey key : jobKeys)
-//        {
-//            List<Trigger> triggers = (List) scheduler.getTriggersOfJob(key);
-//            if(null != triggers && 1 == triggers.size()
-//                    && triggers.get(0).getKey().equals(target))
-//            {
-//                rets.add(key);
-//            }
-//        }
-
         Trigger trigger = scheduler.getTrigger(new TriggerKey(triggerName, triggerGroup));
-//        for(JobKey jobKey : rets){
-            Class jobClass = scheduler.getJobDetail(trigger.getJobKey()).getJobClass();
-            Job jobObj = (Job) jobClass.newInstance();//(Job)applicationContext.getBean(jobClass);
-            try
-            {
-                Method targetMethod = jobClass.getDeclaredMethod("execute", new Class[] {JobExecutionContext.class});
-                targetMethod.setAccessible(true);
-                targetMethod.invoke(jobObj, new Object[]{null});
-                targetMethod.setAccessible(false);
-            }
-            catch(Exception e)
-            {
-                throw new SchedulerException(e);
-            }
+        Class jobClass = scheduler.getJobDetail(trigger.getJobKey()).getJobClass();
+        String name = jobClass.getName();
+        String beanID = name.substring(0, 1).toLowerCase() + name.substring(1);
+        Job jobObj = (Job) JerryContext.getInstance().getBean(beanID);
+        try {
+            Method targetMethod = jobClass.getDeclaredMethod("execute", new Class[]{JobExecutionContext.class});
+            targetMethod.setAccessible(true);
+            targetMethod.invoke(jobObj, new Object[]{null});
+            targetMethod.setAccessible(false);
+        } catch (Exception e) {
+            throw new SchedulerException(e);
+        }
 //        }
 
     }

@@ -39,17 +39,19 @@ public class JobFactoryAdapt implements JobFactory {
         Object jobDetail = getJobDetail.invoke(bundle);
         Method getJobClass = jobDetail.getClass().getMethod("getJobClass");
         Class jobClass = (Class) getJobClass.invoke(jobDetail);
-        //为字段赋值
-        Object o = jobClass.newInstance();
-        Field[] fields = jobClass.getDeclaredFields();
-        for (Field field : fields) {
-            field.setAccessible(true);
-            if (field.get(o) == null) {
-                Object proxy = jerryContext.getBean(field.getType().getName());
-                if (proxy != null)
-                    field.set(o, proxy);
-            }
-        }
+        String name = jobClass.getName();
+        String beanID = name.substring(0, 1).toLowerCase() + name.substring(1);
+        Object o = jerryContext.getBean(beanID);
+//        jobClass.newInstance();
+//        Field[] fields = jobClass.getDeclaredFields();
+//        for (Field field : fields) {
+//            field.setAccessible(true);
+//            if (field.get(o) == null) {
+//                Object proxy = jerryContext.getBean(field.getType().getName());
+//                if (proxy != null)
+//                    field.set(o, proxy);
+//            }
+//        }
         return o;
     }
 

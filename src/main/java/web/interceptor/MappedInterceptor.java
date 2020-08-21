@@ -1,7 +1,7 @@
 package web.interceptor;
 
-import server.modal.HttpJerryRequest;
-import server.modal.HttpJerryResponse;
+import server.http.JerryHttpServletRequest;
+import server.http.JerryHttpServletResponse;
 
 /**
  * @author 陈龙
@@ -30,17 +30,17 @@ public class MappedInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public boolean preHandle(HttpJerryRequest request, HttpJerryResponse response, Object handler) throws Exception {
+    public boolean preHandle(JerryHttpServletRequest request, JerryHttpServletResponse response, Object handler) throws Exception {
         return this.interceptor.preHandle(request, response, handler);
     }
 
     @Override
-    public void postHandle(HttpJerryRequest request, HttpJerryResponse response, Object handler) throws Exception {
+    public void postHandle(JerryHttpServletRequest request, JerryHttpServletResponse response, Object handler) throws Exception {
         this.interceptor.postHandle(request, response, handler);
     }
 
     @Override
-    public void afterCompletion(HttpJerryRequest request, HttpJerryResponse response, Object handler) throws Exception {
+    public void afterCompletion(JerryHttpServletRequest request, JerryHttpServletResponse response, Object handler) throws Exception {
         this.interceptor.afterCompletion(request, response, handler);
     }
 }

@@ -32,7 +32,6 @@ public class TestService implements TestServiceInter {
     @DataSourceSwitch(value = "dataSource2")
     public String sys() {
         testServiceInter2.sysV2();
-        System.out.println(userMapper + "userMapper");
         List<User> list = userMapper.selectUser();
         return list.size() + "";
     }

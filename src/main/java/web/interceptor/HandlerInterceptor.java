@@ -1,7 +1,8 @@
 package web.interceptor;
 
-import server.modal.HttpJerryRequest;
-import server.modal.HttpJerryResponse;
+
+import server.http.JerryHttpServletRequest;
+import server.http.JerryHttpServletResponse;
 
 /**
  * @author 陈龙
@@ -10,14 +11,14 @@ import server.modal.HttpJerryResponse;
  */
 public interface HandlerInterceptor {
 
-    default boolean preHandle(HttpJerryRequest request, HttpJerryResponse response, Object handler) throws Exception {
+    default boolean preHandle(JerryHttpServletRequest request, JerryHttpServletResponse response, Object handler) throws Exception {
         return true;
     }
 
-    default void postHandle(HttpJerryRequest request, HttpJerryResponse response, Object handler) throws Exception {
+    default void postHandle(JerryHttpServletRequest request, JerryHttpServletResponse response, Object handler) throws Exception {
     }
 
-    default void afterCompletion(HttpJerryRequest request, HttpJerryResponse response, Object handler) throws Exception {
+    default void afterCompletion(JerryHttpServletRequest request, JerryHttpServletResponse response, Object handler) throws Exception {
 
     }
 }

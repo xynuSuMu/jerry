@@ -48,21 +48,7 @@ public class ResourceHandlerRegistry {
         return true;
     }
 
-    public File getResource(String url) throws IOException {
-        String resource = url;
-        InputStream inputStream = null;
-        try {
-            if (resource.startsWith("/"))
-                resource = resource.substring(1);
-            inputStream = Resources.getResourceAsStream(resource);
-        } catch (IOException e) {
-            logger.info("e", e);
-        }
-        if (inputStream == null) {
-            inputStream = Resources.getResourceAsStream("html/404.html");
-        }
-
-        File temp = File.createTempFile(resource, Resource.getJerryCfg("md.suffix"));
+    public void getTempResource(InputStream inputStream, File temp) {
         BufferedInputStream bis = null;
         BufferedOutputStream bos = null;
         try {
@@ -84,6 +70,33 @@ public class ResourceHandlerRegistry {
                 e.printStackTrace();
             }
         }
+    }
+
+    public File getTempResource(String url) throws IOException {
+        String resource = url;
+        InputStream inputStream = null;
+        if (resource.startsWith("/"))
+            resource = resource.substring(1);
+        try {
+            inputStream = Resources.getResourceAsStream(resource);
+        } catch (IOException e) {
+            logger.info("资源不存在，寻找外部资源");
+            String path = Resource.getJerryCfg("path");
+            if (path != null && path != "") {
+                try {
+                    inputStream = new FileInputStream(path + "/" + resource);
+                } catch (IOException e1) {
+                    logger.info("资源不存在，寻找外部资源失败，返回404");
+                }
+            }
+        }
+        if (inputStream == null) {
+            //
+            inputStream = Resources.getResourceAsStream("html/404.html");
+        }
+
+        File temp = File.createTempFile(resource, Resource.getJerryCfg("md.suffix"));
+        getTempResource(inputStream, temp);
         return temp;
     }
 }

@@ -5,7 +5,10 @@ import annotation.job.JerryJob;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import webapp.app1.mapper.User;
 import webapp.app1.mapper.UserMapper;
+
+import java.util.List;
 
 /**
  * @Auther: chenlong
@@ -22,6 +25,8 @@ public class MyJob implements Job {
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
+        List<User> list = userMapper.selectUser();
+        System.out.println("数量" + list.size() + "，执行次数" + i++);
         System.out.println("testJob - testGroup1");
     }
 }

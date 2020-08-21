@@ -53,8 +53,7 @@ public class ComponentScan {
     private List<Class<?>> classes = new CopyOnWriteArrayList<>();
     //所有的mapper class
     private List<Class<?>> mapperClasses = new CopyOnWriteArrayList<>();
-    //所有的Job
-    private List<Class<?>> jobClasses = new CopyOnWriteArrayList<>();
+
     //所有存在实现类接口
     private Map<Class<?>, List<Class<?>>> inter = new ConcurrentHashMap<>();
 
@@ -94,15 +93,14 @@ public class ComponentScan {
             di(clazz);
         }
         //Job
-        for (Class<?> clazz : jobClasses) {
-            handlerJob(clazz);
-        }
+//        for (Class<?> clazz : jobClasses) {
+//            handlerJob(clazz);
+//        }
         //启动调度
         scheduler.start();
         //销毁
         classes = null;
         cacheObj = null;
-        jobClasses = null;
     }
 
 
@@ -235,7 +233,7 @@ public class ComponentScan {
         //Job注解
         JerryJob jerryJob = clazz.getAnnotation(JerryJob.class);
         if (jerryJob != null) {
-            jobClasses.add(clazz);
+            handlerJob(clazz);
         }
     }
 
@@ -392,9 +390,22 @@ public class ComponentScan {
 
     //处理Job
     private void handlerJob(Class<?> clazz) throws Exception {
-
         JerryJob jerryJob = clazz.getAnnotation(JerryJob.class);
+        Object o = clazz.newInstance();
+        //为字段赋值
+        Field[] fields = clazz.getDeclaredFields();
+        for (Field field : fields) {
+            field.setAccessible(true);
+            if (field.get(o) == null) {
+                Object proxy = handlerComponent(field.getType());
+                field.set(o, proxy);
+            }
+        }
 
+        String name = clazz.getName();
+        String beanID = name.substring(0, 1).toLowerCase() + name.substring(1);
+        //1.存入上下文
+        jerryContext.setBean(beanID, o);
         //2.创建JobDetail
         JobDetail job = JobBuilder
                 .newJob((Class<? extends Job>) clazz)

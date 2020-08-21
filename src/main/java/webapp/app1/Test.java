@@ -24,21 +24,21 @@ public class Test {
 
     private Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    @JerryRequestMapping(value = "/sys", method = RequestMethod.GET)
+    @JerryRequestMapping(value = "/test/sys", method = RequestMethod.GET)
     public String sys(@Param(value = "url") String url) {
         logger.info("我是测试数据，😄哈哈" + url);
         testService.sys();
         return "index.html";
     }
 
-    @JerryRequestMapping(value = "/sys?", method = RequestMethod.POST)
+    @JerryRequestMapping(value = "/test/sys?", method = RequestMethod.POST)
     public String sys2(@Param(value = "code") String code, @Param(value = "email") String email, @Param(value = "JSON") TestView testView, @Param(value = "x") Integer x) {
         logger.info("sys?我是测试数据，😄哈哈2、" + x + "->" + code + "->" + email + "->" + JSONObject.toJSONString(testView));
 
         return testService2.sys();
     }
 
-    @JerryRequestMapping(value = "/sys*", method = RequestMethod.POST)
+    @JerryRequestMapping(value = "/test/sys*", method = RequestMethod.POST)
     public String sys3(@Param(value = "code") String code, @Param(value = "email") String email, @Param(value = "JSON") TestView testView, @Param(value = "x") Double x) {
         logger.info("sys*我是测试数据，😄哈哈2、" + x + "->" + code + "->" + email + "->" + JSONObject.toJSONString(testView));
 

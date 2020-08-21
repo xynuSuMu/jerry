@@ -1,9 +1,8 @@
 package webapp.app1;
 
 import annotation.JerryConfig;
-import annotation.JerryService;
-import server.modal.HttpJerryRequest;
-import server.modal.HttpJerryResponse;
+import server.http.JerryHttpServletRequest;
+import server.http.JerryHttpServletResponse;
 import web.interceptor.HandlerInterceptor;
 
 import java.util.Map;
@@ -19,11 +18,11 @@ public class MyInterceptor implements HandlerInterceptor {
     private final String token = "_security_token_inc";
 
     @Override
-    public boolean preHandle(HttpJerryRequest request, HttpJerryResponse response, Object handler) throws Exception {
+    public boolean preHandle(JerryHttpServletRequest request, JerryHttpServletResponse response, Object handler) throws Exception {
 
         //根据项目需求，自定义拦截需求
         boolean res = false;
-        for (Map.Entry<String, String> entry : request.getHttpHeaders().entries()) {
+        for (Map.Entry<String, String> entry : request.headers().entries()) {
             if (token.equals(entry.getKey())) {
                 if ("91568948871536478".equals(entry.getValue())) {
                     System.out.println("请求通过");
@@ -36,12 +35,12 @@ public class MyInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public void postHandle(HttpJerryRequest request, HttpJerryResponse response, Object handler) throws Exception {
+    public void postHandle(JerryHttpServletRequest request, JerryHttpServletResponse response, Object handler) throws Exception {
 
     }
 
     @Override
-    public void afterCompletion(HttpJerryRequest request, HttpJerryResponse response, Object handler) throws Exception {
+    public void afterCompletion(JerryHttpServletRequest request, JerryHttpServletResponse response, Object handler) throws Exception {
 
     }
 }

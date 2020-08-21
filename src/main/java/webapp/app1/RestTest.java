@@ -29,8 +29,7 @@ public class RestTest {
     @JerryRequestMapping(value = "/sys", method = RequestMethod.GET)
     public String sys(@Param(value = "url") String url) {
         logger.info("我是测试数据，😄哈哈" + url);
-       ;
-        return "index.html-"+ testService.sys();
+        return "index.html-" + testService.sys();
     }
 
     @JerryRequestMapping(value = "/sys?", method = RequestMethod.GET)

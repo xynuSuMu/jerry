@@ -23,4 +23,5 @@
 * [图](directory/structure/Graph)
 
 ### 算法
+* [经典算法](directory/algorithm/Base)
 * [PAT](directory/algorithm/PAT)

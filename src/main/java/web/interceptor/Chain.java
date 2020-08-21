@@ -1,8 +1,8 @@
 package web.interceptor;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
-import server.modal.HttpJerryRequest;
-import server.modal.HttpJerryResponse;
+import server.http.JerryHttpServletRequest;
+import server.http.JerryHttpServletResponse;
 import util.CopyAntPathMatcher;
 
 import java.util.List;
@@ -14,26 +14,32 @@ import java.util.List;
  */
 public class Chain {
 
-    public static void chain(List<Object> interceptorRegistrations,
-                             HttpJerryRequest request,
-                             HttpJerryResponse response,
-                             Object o) throws Exception {
+    public static boolean chain(List<Object> interceptorRegistrations,
+                                JerryHttpServletRequest request,
+                                JerryHttpServletResponse response,
+                                Object o) {
         CopyAntPathMatcher copyAntPathMatcher = new CopyAntPathMatcher();
         for (Object temp : interceptorRegistrations) {
             InterceptorRegistration interceptorRegistration = (InterceptorRegistration) temp;
             HandlerInterceptor handlerInterceptor = (HandlerInterceptor) interceptorRegistration.getInterceptor();
             MappedInterceptor mappedInterceptor = (MappedInterceptor) interceptorRegistration.getInterceptor();
             for (String url : mappedInterceptor.getIncludePatterns()) {
-                if (copyAntPathMatcher.match(url, request.getUrl())) {
-                    boolean res = handlerInterceptor.preHandle(request, response, o);
+                if (copyAntPathMatcher.match(url, request.getUri())) {
+                    boolean res = false;
+                    try {
+                        res = handlerInterceptor.preHandle(request, response, o);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     if (!res) {
-                        response.setResponseStatus(HttpResponseStatus.FORBIDDEN);
-                        break;
+                        response.setStatus(HttpResponseStatus.FORBIDDEN);
+                        response.writeString("用户禁止访问");
+                        return false;
                     }
                 }
             }
         }
-
+        return true;
     }
 
 }

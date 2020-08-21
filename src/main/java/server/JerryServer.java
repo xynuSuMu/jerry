@@ -1,8 +1,6 @@
 package server;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -10,22 +8,20 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
-import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import server.modal.HttpJerryRequest;
-import server.modal.HttpJerryResponse;
-import server.modal.ParamModal;
-import web.WebAppManager;
+import server.http.*;
+import server.servlet.Servlet;
+
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.security.*;
-import java.security.cert.CertificateException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.util.PropertyResourceBundle;
 
 /**
  * @author 陈龙
@@ -36,6 +32,8 @@ import java.security.cert.CertificateException;
 public class JerryServer {
 
     private Logger logger = LoggerFactory.getLogger(this.getClass());
+
+    private final String SERVLET = "server.servlet.Servlet";
 
     public void start(int port) throws Exception {
         //事件驱动
@@ -64,12 +62,12 @@ public class JerryServer {
                         @Override
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
                             ChannelPipeline pipeline = socketChannel.pipeline();
-//                            pipeline.addLast("ssl", new SslHandler(sslEngine));
                             pipeline.addLast(new HttpServerCodec());// http 编解码
                             pipeline.addLast("httpAggregator", new HttpObjectAggregator(512 * 1024)); // http 消息聚合器                                                                     512*1024为接收的最大contentlength
                             pipeline.addLast(new ChunkedWriteHandler());
                             pipeline.addLast(new HttpHandler());// 请求处理器
-//                            pipeline.addLast(new Adapter());// 请求处理器
+
+//                            pipeline.addLast("ssl", new SslHandler(sslEngine));
 
                         }
                     });
@@ -90,66 +88,21 @@ public class JerryServer {
 
         @Override
         protected void messageReceived(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
-            String url = fullHttpRequest.getUri();
-            //屏蔽/favicon.ico
-            if (url.endsWith("/favicon.ico")) {
-                return;
-            }
-            //组装请求参数
-            ParamModal paramModal = new ParamModal();
-            paramModal.setHttpMethod(fullHttpRequest.getMethod());
-            //请求类型
-            QueryStringDecoder decoder = new QueryStringDecoder(fullHttpRequest.getUri());
-            decoder.parameters().entrySet().forEach(entry -> {
-//                logger.info("请求URL携带的参数:Key:{},Value:{}", entry.getKey(), entry.getValue().get(0));
-                paramModal.getParam().put(entry.getKey(), entry.getValue().get(0));
-            });
-            if (fullHttpRequest.getMethod() == HttpMethod.POST) {
-                ByteBuf jsonBuf = fullHttpRequest.content();
-                String jsonStr = jsonBuf.toString(CharsetUtil.UTF_8);
-//                logger.info("消息体,{}", jsonStr);
-                paramModal.getParam().put("JSON", jsonStr);
-            } else if (fullHttpRequest.getMethod() != HttpMethod.GET) {
-//                logger.info("暂不支持{}请求", fullHttpRequest.getMethod());
-                sendError(ctx, HttpResponseStatus.METHOD_NOT_ALLOWED);
-                return;
-            }
-            //截取URL
-            if (url.contains("?")) {
-                url = url.split("\\?")[0];
-            }
-            logger.info("请求URL,{}", url);
-            paramModal.setUrl(url);
-            HttpHeaders httpHeaders = fullHttpRequest.headers();
-            HttpJerryRequest httpJerryRequest = new HttpJerryRequest();
-            httpJerryRequest.setUrl(url);
-            httpJerryRequest.setHttpHeaders(httpHeaders);
-            paramModal.setHttpJerryRequest(httpJerryRequest);
-            paramModal.setHttpJerryResponse(new HttpJerryResponse());
-            paramModal.setKeepAlive(HttpHeaders.isKeepAlive(fullHttpRequest));
-            paramModal.setProtocolVersion(fullHttpRequest.getProtocolVersion());
-            //寻找相关应用接口
-            searchApplication(ctx, paramModal);
-        }
+            JerryHttpServletRequest httpServletRequest = new GenericJerryHttpServletRequest(fullHttpRequest);
+            JerryHttpServletResponse httpServletResponse =
+                    new JerryHttpResponse(ctx, fullHttpRequest.getProtocolVersion(), HttpResponseStatus.OK);
 
-        private void sendError(ChannelHandlerContext ctx, HttpResponseStatus status) {
-            FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status,
-                    Unpooled.copiedBuffer("Failure: " + status.toString() + "\r\n", CharsetUtil.UTF_8));
-            response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8");
-            ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-        }
-
-        private void searchApplication(ChannelHandlerContext ctx, ParamModal modal) {
-            //TODO:WebApp1后续改进方向：实现应用隔离
-            try {
-                modal.setContext(ctx);
-                new WebAppManager().response(modal);
-//                ctx.writeAndFlush(new WebAppManager().response(modal)).addListener(ChannelFutureListener.CLOSE);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+            ChannelFuture channelFuture = ctx.write(httpServletResponse);
+            //读取配置
+            PropertyResourceBundle propertyResourceBundle = (PropertyResourceBundle) PropertyResourceBundle.getBundle("jerry");
+            String pkg = propertyResourceBundle.getString(SERVLET);
+            Class clazz = Class.forName(pkg);
+            Servlet servlet = (Servlet) clazz.newInstance();
+            servlet.service(httpServletRequest, httpServletResponse);
+            ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
+            channelFuture.addListener(ChannelFutureListener.CLOSE);
         }
     }
+
 
 }
