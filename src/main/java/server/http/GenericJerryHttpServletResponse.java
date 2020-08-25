@@ -5,6 +5,8 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.*;
 
+import java.io.IOException;
+
 
 /**
  * @author 陈龙
@@ -17,16 +19,16 @@ public class GenericJerryHttpServletResponse extends JerryHttpResponse {
     private final HttpHeaders trailingHeaders;
     private final boolean validateHeaders;
 
-    public GenericJerryHttpServletResponse(ChannelHandlerContext ctx, HttpVersion version, HttpResponseStatus status) {
+    public GenericJerryHttpServletResponse(ChannelHandlerContext ctx, HttpVersion version, HttpResponseStatus status) throws IOException {
         this(ctx, version, status, Unpooled.buffer(0));
 
     }
 
-    public GenericJerryHttpServletResponse(ChannelHandlerContext ctx, HttpVersion version, HttpResponseStatus status, ByteBuf content) {
+    public GenericJerryHttpServletResponse(ChannelHandlerContext ctx, HttpVersion version, HttpResponseStatus status, ByteBuf content) throws IOException {
         this(ctx, version, status, content, true);
     }
 
-    public GenericJerryHttpServletResponse(ChannelHandlerContext ctx, HttpVersion version, HttpResponseStatus status, ByteBuf content, boolean validateHeaders) {
+    public GenericJerryHttpServletResponse(ChannelHandlerContext ctx, HttpVersion version, HttpResponseStatus status, ByteBuf content, boolean validateHeaders) throws IOException {
         super(ctx, version, status, validateHeaders);
         if (content == null) {
             throw new NullPointerException("content");

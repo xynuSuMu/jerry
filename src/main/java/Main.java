@@ -3,6 +3,7 @@ import annotation.mapper.MapperScan;
 import context.Resource;
 import scan.ComponentScan;
 import server.JerryServer;
+import server.annotation.OpenSSL;
 
 import java.io.*;
 import java.util.PropertyResourceBundle;
@@ -14,6 +15,7 @@ import java.util.PropertyResourceBundle;
  * @desc 程序入口
  */
 @MapperScan(pkg = {"webapp/app1/mapper"})
+//@OpenSSL
 public class Main {
 
 
@@ -34,10 +36,8 @@ public class Main {
         }
         //扫描组件(包含Mapper、Controller、RestController、Service、Job)
         componentScan.scanComponent(mapperPath);
-        //配置文件
-        PropertyResourceBundle propertyResourceBundle = new PropertyResourceBundle(Resource.getJerryCfg());
         //启动服务
-        new JerryServer().start(Integer.parseInt(propertyResourceBundle.getString("port")));
+        new JerryServer().start(Main.class);
     }
 
 

@@ -4,6 +4,7 @@ import context.JerryContext;
 import handler.JerryControllerHandlerMethod;
 import io.netty.channel.DefaultFileRegion;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.stream.ChunkedFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import server.http.*;
@@ -43,7 +44,6 @@ public class WebAppManager implements Servlet {
             if (temp) {
                 File resource = InterceptorSupport.getInstance().getResource().getTempResource(url);
                 RandomAccessFile file = new RandomAccessFile(resource, "r");
-                response.setStatus(HttpResponseStatus.OK);
                 String contentType;
                 if (resource.getName().endsWith(".md") || resource.getName().endsWith(".html")) {
                     contentType = "text/html; charset=UTF-8";
@@ -53,8 +53,12 @@ public class WebAppManager implements Servlet {
                 response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, file.length());
                 response.setContentType(contentType);
 
-                response.write(new DefaultFileRegion(file.getChannel(), 0, file.length()));
+                if (request.isSSL())
+                    response.writeAndFlush(new ChunkedFile(file));
+                else
+                    response.write(new DefaultFileRegion(file.getChannel(), 0, file.length()));
                 response.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
+
                 file.close();
                 resource.delete();
             } else {

@@ -13,4 +13,6 @@ public interface JerryHttpServletRequest extends JerryServletRequest {
     HttpMethod getMethod();
 
     HttpHeaders headers();
+
+    Boolean isSSL();
 }

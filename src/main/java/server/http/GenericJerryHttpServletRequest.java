@@ -20,8 +20,9 @@ public class GenericJerryHttpServletRequest implements JerryHttpServletRequest {
     private List<String> list = new ArrayList<>();
     private ByteBuf byteBuf;
     private String contentType;
+    private Boolean isSSl;
 
-    public GenericJerryHttpServletRequest(FullHttpRequest fullHttpRequest) {
+    public GenericJerryHttpServletRequest(FullHttpRequest fullHttpRequest,boolean isSSl) {
         this.fullHttpRequest = fullHttpRequest;
         QueryStringDecoder decoder = new QueryStringDecoder(fullHttpRequest.getUri());
         decoder.parameters().entrySet().forEach(entry -> {
@@ -30,6 +31,7 @@ public class GenericJerryHttpServletRequest implements JerryHttpServletRequest {
 //            System.out.println(entry.getKey() + "-->" + entry.getValue().get(0));
         });
         byteBuf = fullHttpRequest.content();
+        this.isSSl =isSSl;
 //        System.out.println("-----header-----");
 //        for (Map.Entry<String, String> entry : fullHttpRequest.headers().entries()) {
 //            System.out.println(entry.getKey() + "-->" + entry.getValue());
@@ -45,6 +47,11 @@ public class GenericJerryHttpServletRequest implements JerryHttpServletRequest {
     @Override
     public HttpHeaders headers() {
         return fullHttpRequest.headers();
+    }
+
+    @Override
+    public Boolean isSSL() {
+        return isSSl;
     }
 
     @Override

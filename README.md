@@ -22,16 +22,16 @@
 * 请求路径支持通配符匹配(支持通配符)
 * 支持html请求/MarkDown资源请求
 * 集成Quartz定时任务调度
+* 支持Https
 
 #### 部署
 * Maven打包
 * 启动:java -Djava.ext.dirs=./lib -cp jerry-1.0-SNAPSHOT.jar Main > 1.out
 
 #### 相关应用(webapp目录下)
-* app1为测试使用数据
+* app1和app4为测试使用数据
 * app2为个人文章 访问地址:http://127.0.0.1/doc 请求路径和文章路径不宜修改
 * app3为任务管理 
-* app4为个人小程序接口  
  
 #### Http服务实现
 
@@ -60,4 +60,3 @@ server.http包下类结构参考Netty中DefaultHttpRequest继承关系
 #### TODO:
 
 * controller支持数据类型完善，目前只支持GET和POST
-* 支持https请求

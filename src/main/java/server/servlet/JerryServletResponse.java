@@ -25,6 +25,7 @@ public interface JerryServletResponse extends HttpResponse {
     PrintWriter getWriter() throws IOException;
 
     ChannelFuture write(Object o);
+
     ChannelFuture writeString(String o);
 
     ChannelFuture writeAndFlush(Object o);

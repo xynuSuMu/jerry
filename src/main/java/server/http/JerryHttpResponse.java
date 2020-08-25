@@ -10,6 +10,7 @@ import io.netty.util.internal.StringUtil;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.net.InetSocketAddress;
 
 /**
  * @author 陈龙
@@ -22,9 +23,14 @@ public class JerryHttpResponse extends JerryHttpMessage implements JerryHttpServ
 
     private final ChannelHandlerContext ctx;
 
+    public JerryHttpResponse(ChannelHandlerContext ctx, HttpVersion version) {
+        this(ctx, version,null, true);
+    }
+
     public JerryHttpResponse(ChannelHandlerContext ctx, HttpVersion version, HttpResponseStatus status) {
         this(ctx, version, status, true);
     }
+
 
     public JerryHttpResponse(ChannelHandlerContext ctx, HttpVersion version, HttpResponseStatus status, boolean validateHeaders) {
         super(version, validateHeaders);
@@ -41,6 +47,7 @@ public class JerryHttpResponse extends JerryHttpMessage implements JerryHttpServ
     }
 
     public HttpResponse setStatus(HttpResponseStatus status) {
+
         if (status == null) {
             throw new NullPointerException("status");
         } else {
@@ -78,7 +85,8 @@ public class JerryHttpResponse extends JerryHttpMessage implements JerryHttpServ
 
     @Override
     public void sendRedirect(String url) throws IOException {
-        this.setStatus(HttpResponseStatus.MOVED_PERMANENTLY);
+        this.setStatus(HttpResponseStatus.TEMPORARY_REDIRECT);
+        ctx.write(this);
         headers().set("Location", url);
     }
 

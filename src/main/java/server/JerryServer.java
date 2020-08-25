@@ -1,5 +1,6 @@
 package server;
 
+import context.Resource;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -8,19 +9,20 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
+import org.apache.ibatis.io.Resources;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import server.annotation.OpenSSL;
 import server.http.*;
 import server.servlet.Servlet;
-
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
-import java.io.FileInputStream;
-import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.security.KeyStore;
-import java.security.KeyStoreException;
 import java.util.PropertyResourceBundle;
 
 /**
@@ -35,22 +37,18 @@ public class JerryServer {
 
     private final String SERVLET = "server.servlet.Servlet";
 
-    public void start(int port) throws Exception {
+    private final String PORT = "port";
+
+    private boolean isSSL = false;
+
+    public void start(Class<?> clazz) throws Exception {
+        //配置文件
+        PropertyResourceBundle propertyResourceBundle = new PropertyResourceBundle(Resource.getJerryCfg());
+        //获取端口
+        int port = Integer.parseInt(propertyResourceBundle.getString(PORT));
         //事件驱动
         EventLoopGroup boss = new NioEventLoopGroup();
         EventLoopGroup worker = new NioEventLoopGroup();
-
-        //SSL证书
-//        KeyStore ks = KeyStore.getInstance("JKS");
-//        InputStream ksInputStream = new FileInputStream("/Users/chenlong/Documents/xcx/dream/jerry/src/main/resources/studyjava.jks");
-//        ks.load(ksInputStream, "123456".toCharArray());
-//        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-//        kmf.init(ks, "654321".toCharArray());
-//        SSLContext sslContext = SSLContext.getInstance("TLS");
-//        sslContext.init(kmf.getKeyManagers(), null, null);
-//        SSLEngine sslEngine = sslContext.createSSLEngine();
-//        sslEngine.setUseClientMode(false); //服务器端模式
-//        sslEngine.setNeedClientAuth(false); //不需要验证客户端
         //
         try {
             ServerBootstrap bootstrap = new ServerBootstrap();
@@ -62,13 +60,19 @@ public class JerryServer {
                         @Override
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
                             ChannelPipeline pipeline = socketChannel.pipeline();
+                            //开启了SSL
+                            if (clazz.getAnnotation(OpenSSL.class) != null) {
+                                isSSL = true;
+                                SSLContext sslContext = new SSLContextFactory().getSslContext();
+                                SSLEngine sslEngine = sslContext.createSSLEngine();
+                                sslEngine.setUseClientMode(false);
+                                sslEngine.setNeedClientAuth(false);
+                                pipeline.addLast("ssl", new SslHandler(sslEngine));
+                            }
                             pipeline.addLast(new HttpServerCodec());// http 编解码
                             pipeline.addLast("httpAggregator", new HttpObjectAggregator(512 * 1024)); // http 消息聚合器                                                                     512*1024为接收的最大contentlength
                             pipeline.addLast(new ChunkedWriteHandler());
                             pipeline.addLast(new HttpHandler());// 请求处理器
-
-//                            pipeline.addLast("ssl", new SslHandler(sslEngine));
-
                         }
                     });
 
@@ -84,25 +88,42 @@ public class JerryServer {
         }
     }
 
-    private class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
+    private class HttpHandler extends SimpleChannelInboundHandler<HttpObject> {
+
+        private HttpRequest request;
+        private FullHttpRequest fullRequest;
+
 
         @Override
-        protected void messageReceived(ChannelHandlerContext ctx, FullHttpRequest fullHttpRequest) throws Exception {
-            JerryHttpServletRequest httpServletRequest = new GenericJerryHttpServletRequest(fullHttpRequest);
+        protected void messageReceived(ChannelHandlerContext ctx, HttpObject httpObject) throws Exception {
+            request = (HttpRequest) httpObject;
+            fullRequest = (FullHttpRequest) httpObject;
+            JerryHttpServletRequest httpServletRequest = new GenericJerryHttpServletRequest(fullRequest, isSSL);
             JerryHttpServletResponse httpServletResponse =
-                    new JerryHttpResponse(ctx, fullHttpRequest.getProtocolVersion(), HttpResponseStatus.OK);
-
-            ChannelFuture channelFuture = ctx.write(httpServletResponse);
+                    new JerryHttpResponse(ctx, request.getProtocolVersion(), HttpResponseStatus.OK);
+            //
+            ctx.write(httpServletResponse);
             //读取配置
             PropertyResourceBundle propertyResourceBundle = (PropertyResourceBundle) PropertyResourceBundle.getBundle("jerry");
             String pkg = propertyResourceBundle.getString(SERVLET);
             Class clazz = Class.forName(pkg);
             Servlet servlet = (Servlet) clazz.newInstance();
             servlet.service(httpServletRequest, httpServletResponse);
-            ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
-            channelFuture.addListener(ChannelFutureListener.CLOSE);
+            ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT).addListener(ChannelFutureListener.CLOSE);
         }
     }
 
+    private class SSLContextFactory {
+
+        public SSLContext getSslContext() throws Exception {
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            KeyStore keyStore = KeyStore.getInstance("JKS");
+            keyStore.load(Resources.getResourceAsStream("studyjava.jks"), "123456".toCharArray());
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            kmf.init(keyStore, "654321".toCharArray());
+            sslContext.init(kmf.getKeyManagers(), null, null);
+            return sslContext;
+        }
+    }
 
 }

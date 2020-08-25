@@ -11,6 +11,7 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.LastHttpContent;
+import io.netty.handler.stream.ChunkedFile;
 import io.netty.util.CharsetUtil;
 import org.apache.ibatis.io.Resources;
 import org.slf4j.Logger;
@@ -130,12 +131,15 @@ public class JerryControllerHandlerMethod {
                     httpJerryResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
                     httpJerryResponse.headers().set(HttpHeaders.Names.CONTENT_LENGTH, file.length());
                     httpJerryResponse.setContentType(contentType);
-                    httpJerryResponse.write(new DefaultFileRegion(file.getChannel(), 0, file.length()));
-                    httpJerryResponse.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
+                    if (httpJerryRequest.isSSL())
+                        httpJerryResponse.writeAndFlush(new ChunkedFile(file));
+                    else
+                        httpJerryResponse.writeAndFlush(new DefaultFileRegion(file.getChannel(), 0, file.length()));
+//                    httpJerryResponse.writeAndFlush(Unpooled.copiedBuffer("<html><body><h1>111</h1></body></html>", CharsetUtil.UTF_8));
                     file.close();
                     temp.delete();
                 } else {
-                    httpJerryResponse.write(Unpooled.copiedBuffer(o1.toString(), CharsetUtil.UTF_8));
+                    httpJerryResponse.writeAndFlush(Unpooled.copiedBuffer(o1.toString(), CharsetUtil.UTF_8));
                 }
             }
             httpJerryResponse.setStatus(HttpResponseStatus.OK);
