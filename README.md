@@ -12,7 +12,7 @@
 
 #### 实现的功能:
 
-* 提供Http服务(基于Netty)
+* 提供Http服务(基于Netty、支持Https)
 * 实现依赖注入
 * 实现Controller/RestController
 * 集成Mybatis
@@ -22,7 +22,8 @@
 * 请求路径支持通配符匹配(支持通配符)
 * 支持html请求/MarkDown资源请求
 * 集成Quartz定时任务调度
-* 支持Https
+* 集成ASM-识别无Param的注解参数
+* 文件上传功能 -> POST请求有效
 
 #### 部署
 * Maven打包
@@ -59,4 +60,5 @@ server.http包下类结构参考Netty中DefaultHttpRequest继承关系
 
 #### TODO:
 
+* 文件下载
 * controller支持数据类型完善，目前只支持GET和POST

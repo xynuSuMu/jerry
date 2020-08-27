@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import server.http.*;
 import server.servlet.Servlet;
 import web.interceptor.Chain;
+import web.resource.ResourceHandlerRegistry;
 import web.support.InterceptorSupport;
 
 import java.io.File;
@@ -40,16 +41,12 @@ public class WebAppManager implements Servlet {
         JerryControllerHandlerMethod jerryControllerHandlerMethod = jerryContext.getRequestMethod(url);
         if (jerryControllerHandlerMethod == null) {
             //非接口，判断是否为外部资源
-            boolean temp = InterceptorSupport.getInstance().getResource().isResource(url);
-            if (temp) {
-                File resource = InterceptorSupport.getInstance().getResource().getTempResource(url);
+            ResourceHandlerRegistry resourceHandlerRegistry = InterceptorSupport.getInstance().getResource();
+            boolean temp = resourceHandlerRegistry.isResource(url);
+            if (temp) {//是外部资源
+                File resource = resourceHandlerRegistry.getTempResource(url);
                 RandomAccessFile file = new RandomAccessFile(resource, "r");
-                String contentType;
-                if (resource.getName().endsWith(".md") || resource.getName().endsWith(".html")) {
-                    contentType = "text/html; charset=UTF-8";
-                } else {
-                    contentType = "text/json; charset=UTF-8";
-                }
+                String contentType = resourceHandlerRegistry.getContentType(resource);
                 response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, file.length());
                 response.setContentType(contentType);
 

@@ -375,6 +375,7 @@ public class ComponentScan {
                 if (!requestMapping.startsWith("/")) {
                     requestMapping = "/" + requestMapping;
                 }
+
                 logger.info("request:{}", requestMapping);
                 if (jerryContext.getMethod(requestMapping) != null) {
                     throw new JerryException("requestMapping重复:" + requestMapping);

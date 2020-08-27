@@ -99,4 +99,14 @@ public class ResourceHandlerRegistry {
         getTempResource(inputStream, temp);
         return temp;
     }
+
+    public String getContentType(File file) {
+        String contentType;
+        if (file.getName().endsWith(".md") || file.getName().endsWith(".html")) {
+            contentType = "text/html; charset=UTF-8";
+        } else {
+            contentType = "text/json; charset=UTF-8";
+        }
+        return contentType;
+    }
 }

@@ -10,8 +10,6 @@ import io.netty.handler.codec.http.*;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import org.apache.ibatis.io.Resources;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import server.annotation.OpenSSL;
 import server.http.*;
 import server.servlet.Servlet;
@@ -19,9 +17,6 @@ import server.servlet.Servlet;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.security.KeyStore;
 import java.util.PropertyResourceBundle;
 
@@ -33,11 +28,14 @@ import java.util.PropertyResourceBundle;
  */
 public class JerryServer {
 
-    private Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private final String SERVLET = "server.servlet.Servlet";
 
     private final String PORT = "port";
+
+    private final String MAXSIZE = "max.size";
+
+    private final int defaultSize = 1024;
 
     private boolean isSSL = false;
 
@@ -46,12 +44,21 @@ public class JerryServer {
         PropertyResourceBundle propertyResourceBundle = new PropertyResourceBundle(Resource.getJerryCfg());
         //获取端口
         int port = Integer.parseInt(propertyResourceBundle.getString(PORT));
+        //Content_length
+        String maxSize = propertyResourceBundle.getString(MAXSIZE);
+        int size = defaultSize;
+        if (maxSize.endsWith("M")) {
+            size = Integer.parseInt(maxSize.replaceAll("M", "")) * defaultSize * defaultSize;
+        } else if (maxSize.endsWith("KB")) {
+            size = Integer.parseInt(maxSize.replaceAll("KB", "")) * defaultSize;
+        }
         //事件驱动
         EventLoopGroup boss = new NioEventLoopGroup();
         EventLoopGroup worker = new NioEventLoopGroup();
         //
         try {
             ServerBootstrap bootstrap = new ServerBootstrap();
+            int finalSize = size;
             bootstrap
                     .group(boss, worker)
                     .channel(NioServerSocketChannel.class)
@@ -61,6 +68,7 @@ public class JerryServer {
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
                             ChannelPipeline pipeline = socketChannel.pipeline();
                             //开启了SSL
+                            pipeline.addLast("streamer", new ChunkedWriteHandler());
                             if (clazz.getAnnotation(OpenSSL.class) != null) {
                                 isSSL = true;
                                 SSLContext sslContext = new SSLContextFactory().getSslContext();
@@ -70,8 +78,7 @@ public class JerryServer {
                                 pipeline.addLast("ssl", new SslHandler(sslEngine));
                             }
                             pipeline.addLast(new HttpServerCodec());// http 编解码
-                            pipeline.addLast("httpAggregator", new HttpObjectAggregator(512 * 1024)); // http 消息聚合器                                                                     512*1024为接收的最大contentlength
-                            pipeline.addLast(new ChunkedWriteHandler());
+                            pipeline.addLast("httpAggregator", new HttpObjectAggregator(finalSize)); // http 消息聚合器                                                                     512*1024为接收的最大contentlength
                             pipeline.addLast(new HttpHandler());// 请求处理器
                         }
                     });
@@ -91,14 +98,12 @@ public class JerryServer {
     private class HttpHandler extends SimpleChannelInboundHandler<HttpObject> {
 
         private HttpRequest request;
-        private FullHttpRequest fullRequest;
 
 
         @Override
         protected void messageReceived(ChannelHandlerContext ctx, HttpObject httpObject) throws Exception {
             request = (HttpRequest) httpObject;
-            fullRequest = (FullHttpRequest) httpObject;
-            JerryHttpServletRequest httpServletRequest = new GenericJerryHttpServletRequest(fullRequest, isSSL);
+            JerryHttpServletRequest httpServletRequest = new GenericJerryHttpServletRequest(httpObject, isSSL);
             JerryHttpServletResponse httpServletResponse =
                     new JerryHttpResponse(ctx, request.getProtocolVersion(), HttpResponseStatus.OK);
             //

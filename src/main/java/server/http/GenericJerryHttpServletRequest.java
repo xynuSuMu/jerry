@@ -1,11 +1,14 @@
 package server.http;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.QueryStringDecoder;
+import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.multipart.*;
+import server.enume.ContentType;
+
+
+import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @author 陈龙
@@ -14,39 +17,51 @@ import java.util.*;
  */
 public class GenericJerryHttpServletRequest implements JerryHttpServletRequest {
 
-    private final FullHttpRequest fullHttpRequest;
+    private static final HttpDataFactory factory =
+            new DefaultHttpDataFactory(DefaultHttpDataFactory.MINSIZE);
 
+    private HttpPostRequestDecoder postRequestDecoder;
+
+    private HttpObject httpObject;
+    private HttpRequest request;
+    private FullHttpRequest fullHttpRequest;
+    //参数
     private Map<String, String> params = new HashMap<>();
+    //参数名
     private List<String> list = new ArrayList<>();
+    //content
     private ByteBuf byteBuf;
+    //contentType
     private String contentType;
+    //是否开启https
     private Boolean isSSl;
+    //文件
+    private List<FileUpload> fileUploads = new CopyOnWriteArrayList<>();
 
-    public GenericJerryHttpServletRequest(FullHttpRequest fullHttpRequest,boolean isSSl) {
-        this.fullHttpRequest = fullHttpRequest;
-        QueryStringDecoder decoder = new QueryStringDecoder(fullHttpRequest.getUri());
+    public GenericJerryHttpServletRequest(HttpObject httpObject, boolean isSSl) throws IOException {
+        this.httpObject = httpObject;
+        this.request = (HttpRequest) httpObject;
+        QueryStringDecoder decoder = new QueryStringDecoder(request.getUri());
         decoder.parameters().entrySet().forEach(entry -> {
             list.add(entry.getKey());
             params.put(entry.getKey(), entry.getValue().get(0));
-//            System.out.println(entry.getKey() + "-->" + entry.getValue().get(0));
         });
-        byteBuf = fullHttpRequest.content();
-        this.isSSl =isSSl;
-//        System.out.println("-----header-----");
-//        for (Map.Entry<String, String> entry : fullHttpRequest.headers().entries()) {
-//            System.out.println(entry.getKey() + "-->" + entry.getValue());
-//        }
-        contentType = fullHttpRequest.headers().get("Content-Type");
+        this.isSSl = isSSl;
+        contentType = request.headers().get(HttpHeaders.Names.CONTENT_TYPE);
+        if (request.getMethod() != HttpMethod.GET) {
+            handlerContentType();
+        }
     }
+
 
     @Override
     public HttpMethod getMethod() {
-        return fullHttpRequest.getMethod();
+        return request.getMethod();
     }
 
     @Override
     public HttpHeaders headers() {
-        return fullHttpRequest.headers();
+        return request.headers();
     }
 
     @Override
@@ -55,13 +70,18 @@ public class GenericJerryHttpServletRequest implements JerryHttpServletRequest {
     }
 
     @Override
+    public List<FileUpload> getFileUpload() {
+        return fileUploads;
+    }
+
+    @Override
     public String getProtocol() {
-        return fullHttpRequest.getProtocolVersion().protocolName();
+        return request.getProtocolVersion().protocolName();
     }
 
     @Override
     public String getHost() {
-        return fullHttpRequest.getUri();
+        return request.getUri();
     }
 
     @Override
@@ -71,7 +91,7 @@ public class GenericJerryHttpServletRequest implements JerryHttpServletRequest {
 
     @Override
     public String getUri() {
-        String url = fullHttpRequest.getUri();
+        String url = request.getUri();
         if (url.contains("?")) {
             url = url.split("\\?")[0];
         }
@@ -106,5 +126,36 @@ public class GenericJerryHttpServletRequest implements JerryHttpServletRequest {
     @Override
     public ByteBuf getByteBuf() {
         return byteBuf;
+    }
+
+    private void handlerContentType() throws IOException {
+        if (contentType.contains(ContentType.Type.FORM_DATA.getTypeName())) {//上传文件
+            postRequestDecoder = new HttpPostRequestDecoder(factory, request);
+            InterfaceHttpData data;
+            while (postRequestDecoder.hasNext() && (data = postRequestDecoder.next()) != null) {
+                if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.FileUpload) { // 获得文件数据
+                    FileUpload fileUpload = (FileUpload) data;
+                    if (fileUpload.isCompleted()) {
+                        fileUploads.add(fileUpload);
+                    }
+                } else if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.Attribute) {//文本数据
+                    Attribute attribute = (Attribute) data;
+                    params.put(attribute.getName(), attribute.getValue());
+                }
+            }
+        } else if (contentType.contains(ContentType.Type.JSON.getTypeName())) {//json格式
+            this.fullHttpRequest = (FullHttpRequest) httpObject;
+            byteBuf = fullHttpRequest.content();
+        } else if (contentType.contains(ContentType.Type.FORM.getTypeName())) {
+            List<InterfaceHttpData> datas = postRequestDecoder.getBodyHttpDatas();
+            for (InterfaceHttpData data : datas) {
+                if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.Attribute) {
+                    Attribute attribute = (Attribute) data;
+
+                    params.put(attribute.getName(), attribute.getValue());
+
+                }
+            }
+        }
     }
 }
