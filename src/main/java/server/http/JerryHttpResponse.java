@@ -3,6 +3,7 @@ package server.http;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
 import io.netty.util.internal.StringUtil;
@@ -24,7 +25,7 @@ public class JerryHttpResponse extends JerryHttpMessage implements JerryHttpServ
     private final ChannelHandlerContext ctx;
 
     public JerryHttpResponse(ChannelHandlerContext ctx, HttpVersion version) {
-        this(ctx, version,null, true);
+        this(ctx, version, null, true);
     }
 
     public JerryHttpResponse(ChannelHandlerContext ctx, HttpVersion version, HttpResponseStatus status) {
@@ -124,6 +125,14 @@ public class JerryHttpResponse extends JerryHttpMessage implements JerryHttpServ
     @Override
     public ChannelFuture writeAndFlush(Object o) {
         return ctx.writeAndFlush(o);
+    }
+
+    @Override
+    public ChannelFuture write(Object o, ChannelPromise channelPromise) {
+        if (channelPromise == null)
+            return ctx.write(o, ctx.newProgressivePromise());
+        else
+            return ctx.write(o, channelPromise);
     }
 
     @Override

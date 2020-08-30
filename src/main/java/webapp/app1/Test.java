@@ -2,14 +2,19 @@ package webapp.app1;
 
 import annotation.*;
 import com.alibaba.fastjson.JSONObject;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelProgressiveFuture;
+import io.netty.channel.ChannelProgressiveFutureListener;
+import io.netty.channel.DefaultFileRegion;
+import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.LastHttpContent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import server.http.JerryHttpServletRequest;
+import server.http.JerryHttpServletResponse;
 import web.fileupload.JerryMultipartFile;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 
 
 /**
@@ -43,6 +48,41 @@ public class Test {
             e.printStackTrace();
         }
         logger.info("multipartFile1+" + multipartFile1.getFileName() + "multipartFile2" + multipartFile2.getFileName() + "我是测试数据，😄哈哈" + url);
+        return "index.html";
+    }
+
+    @JerryRequestMapping(value = "/test/download", method = RequestMethod.GET)
+    public String download(JerryHttpServletRequest request, JerryHttpServletResponse response) throws IOException {
+//        System.out.println(request.getUri());
+//        File file = new File("/Users/chenlong/Documents/xcx/dream/jerry/src/main/resources/querying (2).xls");
+//
+//        RandomAccessFile raf = new RandomAccessFile(file, "r");
+//        long fileLength = raf.length();
+//        response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, fileLength);
+//        response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "application/octet-stream");
+//        response.headers().add("Content-disposition", String.format("attachment; filename=\"%s\"", file.getName()));
+//        response.write(response);
+//        ChannelFuture sendFileFuture = response.write(new DefaultFileRegion(raf.getChannel(), 0, fileLength), null);
+//        sendFileFuture.addListener(new ChannelProgressiveFutureListener() {
+//            @Override
+//            public void operationComplete(ChannelProgressiveFuture future)
+//                    throws Exception {
+////                log.info("file {} transfer complete.", file.getName());
+//                raf.close();
+//            }
+//
+//            @Override
+//            public void operationProgressed(ChannelProgressiveFuture future,
+//                                            long progress, long total) throws Exception {
+//                if (total < 0) {
+////                    log.warn("file {} transfer progress: {}", file.getName(), progress);
+//                } else {
+////                    log.debug("file {} transfer progress: {}/{}", file.getName(), progress, total);
+//                }
+//            }
+//        });
+//        response.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
+        response.sendRedirect("http://www.study-java.cn");
         return "index.html";
     }
 

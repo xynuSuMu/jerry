@@ -74,9 +74,9 @@ public class JerryControllerHandlerMethod {
         Object[] params = null;
         //获取请求
         if (requestMethods == RequestMethod.GET) {
-            params = getReq(httpJerryRequest);
+            params = getReq(httpJerryRequest, httpJerryResponse);
         } else if (requestMethods == RequestMethod.POST) {//POST请求
-            params = postReq(httpJerryRequest);
+            params = postReq(httpJerryRequest, httpJerryResponse);
         }
         Object o1;
         try {
@@ -91,14 +91,20 @@ public class JerryControllerHandlerMethod {
     }
 
 
-    private Object[] getReq(JerryHttpServletRequest httpJerryRequest) {
+    private Object[] getReq(JerryHttpServletRequest httpJerryRequest, JerryHttpServletResponse httpJerryResponse) {
         Object[] params = new Object[parameterTypes.length];
         List<String> paramNamesByAsm = AsmMethods.getParamNamesByAsm(method);
         int i = 0;
         for (Parameter parameter : parameterTypes) {
-            //参数，如果有注解则取注解，无注解使用ASM进行参数名称的解析
             Param param;
-            if ((param = parameter.getDeclaredAnnotation(Param.class)) != null) {
+            if (parameter.getType() == JerryHttpServletRequest.class) {
+                params[i++] = httpJerryRequest;
+            } else if (parameter.getType() == JerryHttpServletResponse.class) {
+                params[i++] = httpJerryResponse;
+            }
+            //参数，如果有注解则取注解，无注解使用ASM进行参数名称的解析
+
+            else if ((param = parameter.getDeclaredAnnotation(Param.class)) != null) {
                 params[i++] = httpJerryRequest.getParameter(param.value());
             } else {
                 params[i] = httpJerryRequest.getParameter(paramNamesByAsm.get(i++));
@@ -107,14 +113,17 @@ public class JerryControllerHandlerMethod {
         return params;
     }
 
-    private Object[] postReq(JerryHttpServletRequest httpJerryRequest) throws IOException {
+    private Object[] postReq(JerryHttpServletRequest httpJerryRequest, JerryHttpServletResponse httpJerryResponse) throws IOException {
         Object[] params = new Object[parameterTypes.length];
         List<String> paramNamesByAsm = AsmMethods.getParamNamesByAsm(method);
         int i = 0;
         for (Parameter parameter : parameterTypes) {
             Param param;
-            //优先处理上传的文件
-            if (parameter.getType() == JerryMultipartFile.class) {
+            if (parameter.getType() == JerryHttpServletRequest.class) {
+                params[i] = httpJerryRequest;
+            } else if (parameter.getType() == JerryHttpServletResponse.class) {
+                params[i] = httpJerryResponse;
+            } else if (parameter.getType() == JerryMultipartFile.class) {
                 String name;
                 if ((param = parameter.getDeclaredAnnotation(Param.class)) != null) {
                     name = param.value();

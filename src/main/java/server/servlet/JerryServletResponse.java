@@ -2,6 +2,7 @@ package server.servlet;
 
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpResponse;
 
@@ -29,6 +30,8 @@ public interface JerryServletResponse extends HttpResponse {
     ChannelFuture writeString(String o);
 
     ChannelFuture writeAndFlush(Object o);
+
+    ChannelFuture write(Object o, ChannelPromise channelPromise);
 
     void setCharacterEncoding(String var1);
 
