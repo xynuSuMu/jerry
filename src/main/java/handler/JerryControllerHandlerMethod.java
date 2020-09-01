@@ -213,7 +213,7 @@ public class JerryControllerHandlerMethod {
 //                temp.delete();
                 }
             } else {
-                httpJerryResponse.writeAndFlush(Unpooled.copiedBuffer(o.toString(), CharsetUtil.UTF_8));
+                httpJerryResponse.writeAndFlush(Unpooled.copiedBuffer(JSONObject.toJSONString(o), CharsetUtil.UTF_8));
             }
         }
     }
