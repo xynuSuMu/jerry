@@ -1,12 +1,11 @@
 
 import annotation.mapper.MapperScan;
 import context.Resource;
+import listener.doc.DocListener;
+import org.apache.commons.io.monitor.FileAlterationMonitor;
+import org.apache.commons.io.monitor.FileAlterationObserver;
 import scan.ComponentScan;
 import server.JerryServer;
-import server.annotation.OpenSSL;
-
-import java.io.*;
-import java.util.PropertyResourceBundle;
 
 /**
  * @author 陈龙
@@ -18,6 +17,7 @@ import java.util.PropertyResourceBundle;
 //@OpenSSL
 public class Main {
 
+    private final String LISTENER = "listener.path";
 
     public static void main(String[] args) throws Exception {
         new Main().init();
@@ -36,8 +36,17 @@ public class Main {
         }
         //扫描组件(包含Mapper、Controller、RestController、Service、Job)
         componentScan.scanComponent(mapperPath);
+        //启动文件监听
+        DocListener docListener = new DocListener();
+        String path = Resource.getJerryCfg(LISTENER);
+        FileAlterationObserver observer = new FileAlterationObserver(path);
+        observer.addListener(docListener);
+        FileAlterationMonitor monitor = new FileAlterationMonitor(10000);
+        monitor.addObserver(observer);
+        monitor.start();
         //启动服务
         new JerryServer().start(Main.class);
+
     }
 
 

@@ -13,8 +13,14 @@ import annotation.RequestMethod;
 @JerryRequestMapping("")
 public class ArticleController {
 
+    //阅读模式
     @JerryRequestMapping(value = "/doc", method = RequestMethod.GET)
     public String getDoc() {
         return "doc.html";
+    }
+
+    @JerryRequestMapping(value = "/doc/directory", method = RequestMethod.GET)
+    public String getDirectory() {
+        return "directory.html";
     }
 }

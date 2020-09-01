@@ -46,7 +46,7 @@ public class JerryServer {
         int port = Integer.parseInt(propertyResourceBundle.getString(PORT));
         //Content_length
         String maxSize = propertyResourceBundle.getString(MAXSIZE);
-        int size = defaultSize;
+        int size = defaultSize * defaultSize;
         if (maxSize.endsWith("M")) {
             size = Integer.parseInt(maxSize.replaceAll("M", "")) * defaultSize * defaultSize;
         } else if (maxSize.endsWith("KB")) {

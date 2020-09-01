@@ -14,17 +14,13 @@
 
 * 提供Http服务(基于Netty、支持Https)
 * 实现依赖注入
-* 实现Controller/RestController
-* 集成Mybatis
-* 事务注解
-* 多数据源切换
-* 请求拦截器(支持通配符)
-* 请求路径支持通配符匹配(支持通配符)
+* 实现Controller/RestController、请求路径支持通配符匹配(支持通配符)、请求拦截器(支持通配符)、支持重定向
+* 集成Mybatis、事务注解、多数据源切换
 * 支持html请求/MarkDown资源请求
 * 集成Quartz定时任务调度
 * 集成ASM-识别无Param的注解参数(开启-g 或 -parameters(JDK8有效)参数)
 * 文件上传/下载功能 -> 上传POST请求有效
-* 支持重定向
+* 支持文件监听
 
 #### 部署
 * Maven打包
@@ -59,6 +55,10 @@ server.http包下类结构参考Netty中DefaultHttpRequest继承关系
 
 通过Quartz提供的JobFactory实现Job实例的控制
 
+#### 文章
+目前文章请求数据为jerry.properties配置路径，如resources下doc目录生效，将content2和directory2改为content和directory
+
 #### TODO:
 
 * controller支持数据类型完善，目前只支持GET和POST
+* 应用隔离

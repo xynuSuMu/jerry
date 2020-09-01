@@ -45,18 +45,23 @@ public class WebAppManager implements Servlet {
             boolean temp = resourceHandlerRegistry.isResource(url);
             if (temp) {//是外部资源
                 File resource = resourceHandlerRegistry.getTempResource(url);
-                RandomAccessFile file = new RandomAccessFile(resource, "r");
-                String contentType = resourceHandlerRegistry.getContentType(resource);
-                response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, file.length());
-                response.setContentType(contentType);
+                if (resource == null) {
+                    response.setStatus(HttpResponseStatus.NOT_FOUND);
+                    response.writeString("请求404");
+                } else {
+                    RandomAccessFile file = new RandomAccessFile(resource, "r");
+                    String contentType = resourceHandlerRegistry.getContentType(resource);
+                    response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, file.length());
+                    response.setContentType(contentType);
 
-                if (request.isSSL())
-                    response.writeAndFlush(new ChunkedFile(file));
-                else
-                    response.write(new DefaultFileRegion(file.getChannel(), 0, file.length()));
-                response.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
-                file.close();
-                resource.delete();
+                    if (request.isSSL())
+                        response.writeAndFlush(new ChunkedFile(file));
+                    else
+                        response.write(new DefaultFileRegion(file.getChannel(), 0, file.length()));
+                    response.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
+                    file.close();
+//                resource.delete();
+                }
             } else {
                 response.setStatus(HttpResponseStatus.NOT_FOUND);
                 response.writeString("请求404");

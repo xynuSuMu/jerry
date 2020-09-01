@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>每天学Java</title>
+    <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdn.bootcss.com/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script>
+        var SERVER_URL = "http://127.0.0.1:8090/";
+        var html;
+
+        function getDir() {
+            $.ajax({
+                "url": SERVER_URL + "article/getDir",
+                "type": "GET",
+                headers: {
+                    'Accept': 'application/json; charset=utf-8',
+                    'contentType': 'application/json',
+                },
+                success: function (res) {
+                    html = res;
+                },
+                error: function (error) {
+                    console.log(res)
+                }
+            })
+        }
+
+        getDir();
+    </script>
+</head>
+<body>
+<h1>
+</h1>
+</body>
+</html>

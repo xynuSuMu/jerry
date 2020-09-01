@@ -90,7 +90,7 @@ public class JerryControllerHandlerMethod {
         Object o1;
         try {
             o1 = method.invoke(o, params);
-            response(httpJerryRequest, httpJerryResponse, o1);
+            response(httpJerryRequest, httpJerryResponse, o1, o);
         } catch (Exception e) {
             httpJerryResponse.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
             e.printStackTrace();
@@ -186,36 +186,32 @@ public class JerryControllerHandlerMethod {
         return params;
     }
 
-    private void response(JerryHttpServletRequest httpJerryRequest, JerryHttpServletResponse httpJerryResponse, Object o) throws IOException {
+    private void response(JerryHttpServletRequest httpJerryRequest, JerryHttpServletResponse httpJerryResponse, Object o, Object clazz) throws IOException {
         if (returnType == void.class) {
             httpJerryResponse.setContentLength(0);
         } else {
-            if (!isRestController(o.getClass())) {//非Rest接口，返回Controller对应的资源
+            if (!isRestController(clazz.getClass())) {//非Rest接口，返回Controller对应的资源
                 Properties properties = Resources.getResourceAsProperties("jerry.properties");
                 String dir = properties.getProperty("html.dir");
                 String resource = dir + "/" + o.toString();
-                InputStream inputStream = null;
-                try {
-                    inputStream = Resources.getResourceAsStream(resource);
-                } catch (IOException e) {
-                    logger.info("e", e);
+
+                File temp = InterceptorSupport.getInstance().getResource().getTempResource(resource);
+                if (temp == null) {
+                    httpJerryResponse.setStatus(HttpResponseStatus.NOT_FOUND);
+                    httpJerryResponse.writeString("请求404");
+                } else {
+                    RandomAccessFile file = new RandomAccessFile(temp, "r");
+                    String contentType = InterceptorSupport.getInstance().getResource().getContentType(temp);
+                    httpJerryResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
+                    httpJerryResponse.headers().set(HttpHeaders.Names.CONTENT_LENGTH, file.length());
+                    httpJerryResponse.setContentType(contentType);
+                    if (httpJerryRequest.isSSL())
+                        httpJerryResponse.writeAndFlush(new ChunkedFile(file));
+                    else
+                        httpJerryResponse.writeAndFlush(new DefaultFileRegion(file.getChannel(), 0, file.length()));
+                    file.close();
+//                temp.delete();
                 }
-                if (inputStream == null) {
-                    inputStream = Resources.getResourceAsStream(properties.getProperty("not.find.html"));
-                }
-                File temp = File.createTempFile(resource, properties.getProperty("html.suffix"));
-                InterceptorSupport.getInstance().getResource().getTempResource(inputStream, temp);
-                RandomAccessFile file = new RandomAccessFile(temp, "r");
-                String contentType = InterceptorSupport.getInstance().getResource().getContentType(temp);
-                httpJerryResponse.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE);
-                httpJerryResponse.headers().set(HttpHeaders.Names.CONTENT_LENGTH, file.length());
-                httpJerryResponse.setContentType(contentType);
-                if (httpJerryRequest.isSSL())
-                    httpJerryResponse.writeAndFlush(new ChunkedFile(file));
-                else
-                    httpJerryResponse.writeAndFlush(new DefaultFileRegion(file.getChannel(), 0, file.length()));
-                file.close();
-                temp.delete();
             } else {
                 httpJerryResponse.writeAndFlush(Unpooled.copiedBuffer(o.toString(), CharsetUtil.UTF_8));
             }
@@ -237,7 +233,7 @@ public class JerryControllerHandlerMethod {
         }
     }
 
-//    public static void main(String[] args) throws NoSuchMethodException {
+    //    public static void main(String[] args) throws NoSuchMethodException {
 //        String[] s = getMethodParamNames(Test.class.getDeclaredMethod("sys",String.class));
 //        System.out.println(Arrays.toString(s));
 //
@@ -257,7 +253,6 @@ public class JerryControllerHandlerMethod {
     }
 
     /**
-     *
      * <p>
      * 获取方法的参数名
      * </p>
@@ -268,7 +263,7 @@ public class JerryControllerHandlerMethod {
     public static String[] getMethodParamNames(final Method m) {
         final String[] paramNames = new String[m.getParameterTypes().length];
         final String n = m.getDeclaringClass().getName();
-        ClassReader cr ;
+        ClassReader cr;
         try {
             cr = new ClassReader(n);
         } catch (IOException e) {

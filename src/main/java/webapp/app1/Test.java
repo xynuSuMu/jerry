@@ -93,6 +93,12 @@ public class Test {
         return "";
     }
 
+    //测试页面
+    @JerryRequestMapping(value = "/test/index.htm", method = RequestMethod.GET)
+    public String sendIndex() throws IOException {
+        return "index.html";
+    }
+
     //测试使用对象
     @JerryRequestMapping(value = "/test/sys?", method = RequestMethod.POST)
     public String sys2(@Param(value = "code") String code, @Param(value = "email") String email, @Param(value = "JSON") TestView testView, @Param(value = "x") Integer x) {

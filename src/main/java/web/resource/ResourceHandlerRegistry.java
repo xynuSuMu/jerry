@@ -9,6 +9,7 @@ import util.CopyAntPathMatcher;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -20,8 +21,15 @@ public class ResourceHandlerRegistry {
 
     private static Logger logger = LoggerFactory.getLogger(ResourceHandlerRegistry.class);
 
+    //文件
+    private Map<String, File> tempFile = new ConcurrentHashMap<>();
+
 
     private List<String> path = new CopyOnWriteArrayList<>();
+
+    private final String PATH = "path";
+
+    private final String PATH_404 = "html/404.html";
 
     public ResourceHandlerRegistry addResource(String path) {
         this.path.add(path);
@@ -46,6 +54,32 @@ public class ResourceHandlerRegistry {
             return false;
 
         return true;
+    }
+
+    public void setTempFile(String key, File o) {
+        if (key.startsWith("/"))
+            key = key.substring(1);
+        tempFile.put(key, o);
+    }
+
+    public void setTempFile(String key) throws IOException {
+        if (key.startsWith("/"))
+            key = key.substring(1);
+        InputStream inputStream = null;
+        try {
+            String path = Resource.getJerryCfg(PATH);
+            inputStream = new FileInputStream(path + "/" + key);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        if (inputStream == null) {
+            //
+            inputStream = Resources.getResourceAsStream(PATH_404);
+        }
+
+        File temp = File.createTempFile(key, Resource.getJerryCfg("md.suffix"));
+        getTempResource(inputStream, temp);
+        tempFile.put(key, temp);
     }
 
     public void getTempResource(InputStream inputStream, File temp) {
@@ -73,18 +107,22 @@ public class ResourceHandlerRegistry {
     }
 
     public File getTempResource(String url) throws IOException {
+
         String resource = url;
         InputStream inputStream = null;
         if (resource.startsWith("/"))
             resource = resource.substring(1);
+        if (tempFile.containsKey(resource))
+            return tempFile.get(resource);
         try {
             inputStream = Resources.getResourceAsStream(resource);
         } catch (IOException e) {
-            logger.info("资源不存在，寻找外部资源");
-            String path = Resource.getJerryCfg("path");
+            String path = Resource.getJerryCfg(PATH);
+            logger.info(path + "/" + resource + ",资源不存在，寻找外部资源");
             if (path != null && path != "") {
                 try {
                     inputStream = new FileInputStream(path + "/" + resource);
+                    logger.info("资源存在");
                 } catch (IOException e1) {
                     logger.info("资源不存在，寻找外部资源失败，返回404");
                 }
@@ -92,11 +130,12 @@ public class ResourceHandlerRegistry {
         }
         if (inputStream == null) {
             //
-            inputStream = Resources.getResourceAsStream("html/404.html");
+            inputStream = Resources.getResourceAsStream(PATH_404);
         }
 
         File temp = File.createTempFile(resource, Resource.getJerryCfg("md.suffix"));
         getTempResource(inputStream, temp);
+        tempFile.put(resource, temp);
         return temp;
     }
 
