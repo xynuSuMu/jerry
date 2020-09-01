@@ -5,7 +5,7 @@ import annotation.Param;
 import annotation.RequestMethod;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.github.houbb.asm.tool.reflection.AsmMethods;
+//import com.github.houbb.asm.tool.reflection.AsmMethods;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.DefaultFileRegion;
 import io.netty.handler.codec.http.HttpHeaders;
@@ -15,6 +15,7 @@ import io.netty.handler.codec.http.multipart.FileUpload;
 import io.netty.handler.stream.ChunkedFile;
 import io.netty.util.CharsetUtil;
 import org.apache.ibatis.io.Resources;
+import org.objectweb.asm.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import server.http.*;
@@ -26,8 +27,15 @@ import java.io.*;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
+
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
+
+import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
+
 
 /**
  * @author 陈龙
@@ -68,6 +76,7 @@ public class JerryControllerHandlerMethod {
         if (requestMethods != RequestMethod.EMPTY &&
                 !httpMethod.name().equals(requestMethods.name())) {
             httpJerryResponse.setStatus(HttpResponseStatus.METHOD_NOT_ALLOWED);
+            httpJerryResponse.writeString("请求类型不匹配");
             return;
         }
         //调用参数
@@ -91,9 +100,10 @@ public class JerryControllerHandlerMethod {
     }
 
 
-    private Object[] getReq(JerryHttpServletRequest httpJerryRequest, JerryHttpServletResponse httpJerryResponse) {
+    private Object[] getReq(JerryHttpServletRequest httpJerryRequest, JerryHttpServletResponse httpJerryResponse) throws IOException {
         Object[] params = new Object[parameterTypes.length];
-        List<String> paramNamesByAsm = AsmMethods.getParamNamesByAsm(method);
+//        List<String> paramNamesByAsm = AsmMethods.getParamNamesByAsm(method);
+        String[] paramNamesByAsm = getMethodParamNames(method);
         int i = 0;
         for (Parameter parameter : parameterTypes) {
             Param param;
@@ -107,7 +117,7 @@ public class JerryControllerHandlerMethod {
             else if ((param = parameter.getDeclaredAnnotation(Param.class)) != null) {
                 params[i++] = httpJerryRequest.getParameter(param.value());
             } else {
-                params[i] = httpJerryRequest.getParameter(paramNamesByAsm.get(i++));
+                params[i] = httpJerryRequest.getParameter(paramNamesByAsm[i++]);
             }
         }
         return params;
@@ -115,7 +125,10 @@ public class JerryControllerHandlerMethod {
 
     private Object[] postReq(JerryHttpServletRequest httpJerryRequest, JerryHttpServletResponse httpJerryResponse) throws IOException {
         Object[] params = new Object[parameterTypes.length];
-        List<String> paramNamesByAsm = AsmMethods.getParamNamesByAsm(method);
+        String[] paramNamesByAsm = getMethodParamNames(method);//AsmMethods.getParamNamesByAsm(method);
+        for (String p : paramNamesByAsm) {
+            System.out.println(p);
+        }
         int i = 0;
         for (Parameter parameter : parameterTypes) {
             Param param;
@@ -128,7 +141,7 @@ public class JerryControllerHandlerMethod {
                 if ((param = parameter.getDeclaredAnnotation(Param.class)) != null) {
                     name = param.value();
                 } else {
-                    name = paramNamesByAsm.get(i);
+                    name = paramNamesByAsm[i];
                 }
                 JerryMultipartFile jerryMultipartFile = null;
                 for (FileUpload fileUpload : httpJerryRequest.getFileUpload()) {
@@ -167,7 +180,7 @@ public class JerryControllerHandlerMethod {
                     }
                 }
             } else {
-                params[i] = httpJerryRequest.getParameter(paramNamesByAsm.get(i++));
+                params[i] = httpJerryRequest.getParameter(paramNamesByAsm[i++]);
             }
         }
         return params;
@@ -207,7 +220,6 @@ public class JerryControllerHandlerMethod {
                 httpJerryResponse.writeAndFlush(Unpooled.copiedBuffer(o.toString(), CharsetUtil.UTF_8));
             }
         }
-        httpJerryResponse.setStatus(HttpResponseStatus.OK);
     }
 
     private boolean isRestController(Class<?> clazz) {
@@ -225,5 +237,78 @@ public class JerryControllerHandlerMethod {
         }
     }
 
+//    public static void main(String[] args) throws NoSuchMethodException {
+//        String[] s = getMethodParamNames(Test.class.getDeclaredMethod("sys",String.class));
+//        System.out.println(Arrays.toString(s));
+//
+//    }
+    private static boolean sameType(Type[] types, Class<?>[] clazzes) {
+        // 个数不同
+        if (types.length != clazzes.length) {
+            return false;
+        }
+
+        for (int i = 0; i < types.length; i++) {
+            if (!Type.getType(clazzes[i]).equals(types[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     *
+     * <p>
+     * 获取方法的参数名
+     * </p>
+     *
+     * @param m
+     * @return
+     */
+    public static String[] getMethodParamNames(final Method m) {
+        final String[] paramNames = new String[m.getParameterTypes().length];
+        final String n = m.getDeclaringClass().getName();
+        ClassReader cr ;
+        try {
+            cr = new ClassReader(n);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        cr.accept(new ClassVisitor(Opcodes.ASM7) {
+            @Override
+            public MethodVisitor visitMethod(final int access,
+                                             final String name, final String desc,
+                                             final String signature, final String[] exceptions) {
+                final Type[] args = Type.getArgumentTypes(desc);
+                // 方法名相同并且参数个数相同
+                if (!name.equals(m.getName())
+                        || !sameType(args, m.getParameterTypes())) {
+                    return super.visitMethod(access, name, desc, signature,
+                            exceptions);
+                }
+                MethodVisitor v = super.visitMethod(access, name, desc,
+                        signature, exceptions);
+                return new MethodVisitor(Opcodes.ASM7, v) {
+                    @Override
+                    public void visitLocalVariable(String name, String desc,
+                                                   String signature, Label start, Label end, int index) {
+                        int i = index - 1;
+                        // 如果是静态方法，则第一就是参数
+                        // 如果不是静态方法，则第一个是"this"，然后才是方法的参数
+                        if (Modifier.isStatic(m.getModifiers())) {
+                            i = index;
+                        }
+                        if (i >= 0 && i < paramNames.length) {
+                            paramNames[i] = name;
+                        }
+                        super.visitLocalVariable(name, desc, signature, start,
+                                end, index);
+                    }
+
+                };
+            }
+        }, 0);
+        return paramNames;
+    }
 
 }

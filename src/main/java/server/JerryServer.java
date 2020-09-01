@@ -99,15 +99,12 @@ public class JerryServer {
 
         private HttpRequest request;
 
-
         @Override
         protected void messageReceived(ChannelHandlerContext ctx, HttpObject httpObject) throws Exception {
             request = (HttpRequest) httpObject;
             JerryHttpServletRequest httpServletRequest = new GenericJerryHttpServletRequest(httpObject, isSSL);
             JerryHttpServletResponse httpServletResponse =
                     new JerryHttpResponse(ctx, request.getProtocolVersion(), HttpResponseStatus.OK);
-            //
-            ctx.write(httpServletResponse);
             //读取配置
             PropertyResourceBundle propertyResourceBundle = (PropertyResourceBundle) PropertyResourceBundle.getBundle("jerry");
             String pkg = propertyResourceBundle.getString(SERVLET);

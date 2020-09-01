@@ -55,11 +55,11 @@ public class WebAppManager implements Servlet {
                 else
                     response.write(new DefaultFileRegion(file.getChannel(), 0, file.length()));
                 response.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
-
                 file.close();
                 resource.delete();
             } else {
                 response.setStatus(HttpResponseStatus.NOT_FOUND);
+                response.writeString("请求404");
             }
         } else {
             jerryControllerHandlerMethod.handlerRequestMethod(request, response);

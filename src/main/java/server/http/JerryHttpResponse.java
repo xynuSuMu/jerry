@@ -2,6 +2,7 @@ package server.http;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.*;
@@ -23,6 +24,8 @@ public class JerryHttpResponse extends JerryHttpMessage implements JerryHttpServ
     private HttpResponseStatus status;
 
     private final ChannelHandlerContext ctx;
+
+    private boolean response = false;
 
     public JerryHttpResponse(ChannelHandlerContext ctx, HttpVersion version) {
         this(ctx, version, null, true);
@@ -87,8 +90,9 @@ public class JerryHttpResponse extends JerryHttpMessage implements JerryHttpServ
     @Override
     public void sendRedirect(String url) throws IOException {
         this.setStatus(HttpResponseStatus.TEMPORARY_REDIRECT);
-        ctx.write(this);
         headers().set("Location", url);
+        ctx.writeAndFlush(this)
+                .addListener(ChannelFutureListener.CLOSE);
     }
 
 
@@ -114,21 +118,25 @@ public class JerryHttpResponse extends JerryHttpMessage implements JerryHttpServ
 
     @Override
     public ChannelFuture write(Object o) {
+        check();
         return ctx.write(o);
     }
 
     @Override
     public ChannelFuture writeString(String o) {
+        check();
         return ctx.write(Unpooled.copiedBuffer(o, CharsetUtil.UTF_8));
     }
 
     @Override
     public ChannelFuture writeAndFlush(Object o) {
+        check();
         return ctx.writeAndFlush(o);
     }
 
     @Override
     public ChannelFuture write(Object o, ChannelPromise channelPromise) {
+        check();
         if (channelPromise == null)
             return ctx.write(o, ctx.newProgressivePromise());
         else
@@ -183,5 +191,12 @@ public class JerryHttpResponse extends JerryHttpMessage implements JerryHttpServ
     @Override
     public void reset() {
 
+    }
+
+    private synchronized void check() {
+        if (!response) {
+            response = true;
+            ctx.write(this);
+        }
     }
 }

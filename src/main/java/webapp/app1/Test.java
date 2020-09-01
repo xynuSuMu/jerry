@@ -51,39 +51,46 @@ public class Test {
         return "index.html";
     }
 
+    //测试文件下载
     @JerryRequestMapping(value = "/test/download", method = RequestMethod.GET)
     public String download(JerryHttpServletRequest request, JerryHttpServletResponse response) throws IOException {
-//        System.out.println(request.getUri());
-//        File file = new File("/Users/chenlong/Documents/xcx/dream/jerry/src/main/resources/querying (2).xls");
-//
-//        RandomAccessFile raf = new RandomAccessFile(file, "r");
-//        long fileLength = raf.length();
-//        response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, fileLength);
-//        response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "application/octet-stream");
-//        response.headers().add("Content-disposition", String.format("attachment; filename=\"%s\"", file.getName()));
-//        response.write(response);
-//        ChannelFuture sendFileFuture = response.write(new DefaultFileRegion(raf.getChannel(), 0, fileLength), null);
-//        sendFileFuture.addListener(new ChannelProgressiveFutureListener() {
-//            @Override
-//            public void operationComplete(ChannelProgressiveFuture future)
-//                    throws Exception {
-////                log.info("file {} transfer complete.", file.getName());
-//                raf.close();
-//            }
-//
-//            @Override
-//            public void operationProgressed(ChannelProgressiveFuture future,
-//                                            long progress, long total) throws Exception {
-//                if (total < 0) {
-////                    log.warn("file {} transfer progress: {}", file.getName(), progress);
-//                } else {
-////                    log.debug("file {} transfer progress: {}/{}", file.getName(), progress, total);
-//                }
-//            }
-//        });
-//        response.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
-        response.sendRedirect("http://www.study-java.cn");
+        System.out.println(request.getUri());
+        File file = new File("/Users/chenlong/Documents/xcx/dream/jerry/src/main/resources/doc/content/4_Using/1.md");
+
+        RandomAccessFile raf = new RandomAccessFile(file, "r");
+        long fileLength = raf.length();
+        response.headers().set(HttpHeaders.Names.CONTENT_LENGTH, fileLength);
+        response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "application/octet-stream");
+        response.headers().add("Content-disposition", String.format("attachment; filename=\"%s\"", file.getName()));
+        ChannelFuture sendFileFuture = response.write(new DefaultFileRegion(raf.getChannel(), 0, fileLength), null);
+        sendFileFuture.addListener(new ChannelProgressiveFutureListener() {
+            @Override
+            public void operationComplete(ChannelProgressiveFuture future)
+                    throws Exception {
+//                log.info("file {} transfer complete.", file.getName());
+                raf.close();
+            }
+
+            @Override
+            public void operationProgressed(ChannelProgressiveFuture future,
+                                            long progress, long total) throws Exception {
+                if (total < 0) {
+//                    log.warn("file {} transfer progress: {}", file.getName(), progress);
+                } else {
+//                    log.debug("file {} transfer progress: {}/{}", file.getName(), progress, total);
+                }
+            }
+        });
+        response.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
+//        response.sendRedirect("http://www.study-java.cn");
         return "index.html";
+    }
+
+    //测试重定向
+    @JerryRequestMapping(value = "/test/send", method = RequestMethod.GET)
+    public String send(JerryHttpServletResponse response, @Param(value = "url") String url) throws IOException {
+        response.sendRedirect(url);
+        return "";
     }
 
     //测试使用对象

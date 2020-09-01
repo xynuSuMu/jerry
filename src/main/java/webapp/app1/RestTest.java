@@ -27,7 +27,7 @@ public class RestTest {
     private Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @JerryRequestMapping(value = "/sys", method = RequestMethod.GET)
-    public String sys(@Param(value = "url") String url) {
+    public String sys(String url) {
         logger.info("我是测试数据，😄哈哈" + url);
         return "index.html-" + testService.sys();
     }

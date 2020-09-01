@@ -22,8 +22,9 @@
 * 请求路径支持通配符匹配(支持通配符)
 * 支持html请求/MarkDown资源请求
 * 集成Quartz定时任务调度
-* 集成ASM-识别无Param的注解参数
-* 文件上传功能 -> POST请求有效
+* 集成ASM-识别无Param的注解参数(开启-g 或 -parameters(JDK8有效)参数)
+* 文件上传/下载功能 -> 上传POST请求有效
+* 支持重定向
 
 #### 部署
 * Maven打包
@@ -60,5 +61,4 @@ server.http包下类结构参考Netty中DefaultHttpRequest继承关系
 
 #### TODO:
 
-* 文件下载
 * controller支持数据类型完善，目前只支持GET和POST
