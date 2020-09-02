@@ -126,9 +126,6 @@ public class JerryControllerHandlerMethod {
     private Object[] postReq(JerryHttpServletRequest httpJerryRequest, JerryHttpServletResponse httpJerryResponse) throws IOException {
         Object[] params = new Object[parameterTypes.length];
         String[] paramNamesByAsm = getMethodParamNames(method);//AsmMethods.getParamNamesByAsm(method);
-        for (String p : paramNamesByAsm) {
-            System.out.println(p);
-        }
         int i = 0;
         for (Parameter parameter : parameterTypes) {
             Param param;
@@ -213,6 +210,7 @@ public class JerryControllerHandlerMethod {
 //                temp.delete();
                 }
             } else {
+                httpJerryResponse.setContentType("application/json; charset=utf-8");
                 httpJerryResponse.writeAndFlush(Unpooled.copiedBuffer(JSONObject.toJSONString(o), CharsetUtil.UTF_8));
             }
         }

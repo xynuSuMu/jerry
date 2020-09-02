@@ -9,6 +9,7 @@ import webapp.app1.mapper.User;
 import webapp.app1.mapper.UserMapper;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * @Auther: chenlong
@@ -25,8 +26,6 @@ public class MyJob implements Job {
 
     @Override
     public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
-        List<User> list = userMapper.selectUser();
-        System.out.println("数量" + list.size() + "，执行次数" + i++);
-        System.out.println("testJob - testGroup1");
+        userMapper.crateUUID(UUID.randomUUID().toString().replace("-", ""));
     }
 }

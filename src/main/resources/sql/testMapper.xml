@@ -3,14 +3,16 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="webapp.app1.mapper.UserMapper">
+
     <select id="selectUser" resultType="webapp.app1.mapper.User">
         select * from manage_user
     </select>
-    <update id="updateUser">
-        update manage_user set date_create = now() where id = 27
-    </update>
 
-    <update id="updateUserV2">
-        update manage_user set user_name = '陈龙2' where id = 27
-    </update>
+    <insert id="crateUUID">
+        update manage_user set code=#{code} where id = 1
+    </insert>
+
+    <select id="getUUID" resultType="java.lang.String">
+         select code from manage_user where id = 1;
+    </select>
 </mapper>

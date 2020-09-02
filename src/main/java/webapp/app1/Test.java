@@ -93,8 +93,8 @@ public class Test {
         return "";
     }
 
-    //测试页面
-    @JerryRequestMapping(value = "/test/index.htm", method = RequestMethod.GET)
+    //测试首页面
+    @JerryRequestMapping(value = "index.htm", method = RequestMethod.GET)
     public String sendIndex() throws IOException {
         return "index.html";
     }

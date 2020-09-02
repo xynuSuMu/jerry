@@ -8,7 +8,9 @@
 
 * 小程序:每天学Java
 
-* 个人网站:http://www.study-java.cn
+* 个人文章网站:http://www.study-java.cn:8090/doc
+
+* 个人文章后台:http://www.study-java.cn:8090/index.htm
 
 #### 实现的功能:
 
@@ -20,7 +22,7 @@
 * 集成Quartz定时任务调度
 * 集成ASM-识别无Param的注解参数(开启-g 或 -parameters(JDK8有效)参数)
 * 文件上传/下载功能 -> 上传POST请求有效
-* 支持文件监听
+* 支持文件监听(文章修改实时展示)
 
 #### 部署
 * Maven打包

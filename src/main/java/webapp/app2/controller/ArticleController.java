@@ -23,4 +23,9 @@ public class ArticleController {
     public String getDirectory() {
         return "directory.html";
     }
+
+    @JerryRequestMapping(value = "/doc/content", method = RequestMethod.GET)
+    public String getContent() {
+        return "markdown.html";
+    }
 }

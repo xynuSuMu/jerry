@@ -129,8 +129,8 @@ public class GenericJerryHttpServletRequest implements JerryHttpServletRequest {
     }
 
     private void handlerContentType() throws IOException {
+        postRequestDecoder = new HttpPostRequestDecoder(factory, request);
         if (contentType.contains(ContentType.Type.FORM_DATA.getTypeName())) {//上传文件
-            postRequestDecoder = new HttpPostRequestDecoder(factory, request);
             InterfaceHttpData data;
             while (postRequestDecoder.hasNext() && (data = postRequestDecoder.next()) != null) {
                 if (data.getHttpDataType() == InterfaceHttpData.HttpDataType.FileUpload) { // 获得文件数据
@@ -144,8 +144,15 @@ public class GenericJerryHttpServletRequest implements JerryHttpServletRequest {
                 }
             }
         } else if (contentType.contains(ContentType.Type.JSON.getTypeName())) {//json格式
-            this.fullHttpRequest = (FullHttpRequest) httpObject;
-            byteBuf = fullHttpRequest.content();
+
+//            this.fullHttpRequest = (FullHttpRequest) httpObject;
+//            byteBuf = fullHttpRequest.content();
+            List<InterfaceHttpData> parmList = postRequestDecoder.getBodyHttpDatas();
+            for (InterfaceHttpData parm : parmList) {
+                Attribute data = (Attribute) parm;
+                params.put(data.getName(), data.getValue());
+            }
+
         } else if (contentType.contains(ContentType.Type.FORM.getTypeName())) {
             List<InterfaceHttpData> datas = postRequestDecoder.getBodyHttpDatas();
             for (InterfaceHttpData data : datas) {

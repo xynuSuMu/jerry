@@ -1,5 +1,7 @@
 package webapp.app1.mapper;
 
+import org.apache.ibatis.annotations.Param;
+
 import java.util.List;
 
 /**
@@ -10,7 +12,8 @@ import java.util.List;
 public interface UserMapper {
     List<User> selectUser();
 
-    int updateUser();
+    int crateUUID(@Param("code") String code);
 
-    int updateUserV2();
+    String getUUID();
+
 }
