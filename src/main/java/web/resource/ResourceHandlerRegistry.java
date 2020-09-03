@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import util.CopyAntPathMatcher;
 
 import java.io.*;
+import java.net.URLDecoder;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -59,7 +60,7 @@ public class ResourceHandlerRegistry {
     public void setTempFile(String key, File o) {
         if (key.startsWith("/"))
             key = key.substring(1);
-        tempFile.put(key, o);
+//        tempFile.put(key, o);
     }
 
     public void setTempFile(String key) throws IOException {
@@ -79,7 +80,7 @@ public class ResourceHandlerRegistry {
 
         File temp = File.createTempFile(key, Resource.getJerryCfg("md.suffix"));
         getTempResource(inputStream, temp);
-        tempFile.put(key, temp);
+//        tempFile.put(key, temp);
     }
 
     public void getTempResource(InputStream inputStream, File temp) {
@@ -112,8 +113,9 @@ public class ResourceHandlerRegistry {
         InputStream inputStream = null;
         if (resource.startsWith("/"))
             resource = resource.substring(1);
-        if (tempFile.containsKey(resource))
-            return tempFile.get(resource);
+//        if (tempFile.containsKey(resource))
+//            return tempFile.get(resource);
+        resource = URLDecoder.decode(resource, "UTF-8");
         try {
             inputStream = Resources.getResourceAsStream(resource);
         } catch (IOException e) {
@@ -135,7 +137,7 @@ public class ResourceHandlerRegistry {
 
         File temp = File.createTempFile(resource, Resource.getJerryCfg("md.suffix"));
         getTempResource(inputStream, temp);
-        tempFile.put(resource, temp);
+//        tempFile.put(resource, temp);
         return temp;
     }
 

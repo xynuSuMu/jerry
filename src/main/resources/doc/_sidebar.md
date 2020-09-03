@@ -25,3 +25,6 @@
 ### 算法
 * [经典算法](directory/algorithm/Base)
 * [PAT](directory/algorithm/PAT)
+
+### 信息学奥赛
+* [奥赛真题](directory/orsay/exam)

@@ -94,6 +94,28 @@ public class ArticleApi {
         return res;
     }
 
+    @JerryRequestMapping(value = "/createArticle", method = RequestMethod.POST)
+    public String createArticle(String token, String path, String name) throws IOException {
+        String realtoken = userMapper.getUUID();
+        if (!realtoken.equals(token)) {
+            return "Token过期";
+        }
+        if (!name.endsWith(".md"))
+            return "只能创建md格式文件";
+        //获取
+        String parentPath = Resource.getJerryCfg(LISTENER);
+        //
+        path = parentPath + path + "/" + name;
+
+        File file = new File(path);
+        if (file.exists()) {
+            //
+            return "文件存在";
+        }
+        file.createNewFile();
+        return "创建成功";
+    }
+
     //递归
     public void getFile(File file, List<DirView> res, String path) {
         if (file.isDirectory()) {

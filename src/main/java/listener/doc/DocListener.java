@@ -58,8 +58,8 @@ public class DocListener extends FileAlterationListenerAdaptor {
             String path = Resource.getJerryCfg(PATH);
             logger.info("监听文件发生变动,文件名,{},文件路径{}", file.getName(), file.getAbsolutePath());
             logger.info("相对替换后,{}", file.getAbsolutePath().replace(path, ""));
-            ResourceHandlerRegistry resourceHandlerRegistry = InterceptorSupport.getInstance().getResource();
-            resourceHandlerRegistry.setTempFile(file.getAbsolutePath().replace(path, ""));
+//            ResourceHandlerRegistry resourceHandlerRegistry = InterceptorSupport.getInstance().getResource();
+//            resourceHandlerRegistry.setTempFile(file.getAbsolutePath().replace(path, ""));
             logger.info("更新完成");
         } catch (IOException e) {
             e.printStackTrace();
@@ -71,8 +71,8 @@ public class DocListener extends FileAlterationListenerAdaptor {
     public void onFileDelete(File file) {
         try {
             String path = Resource.getJerryCfg(PATH);
-            ResourceHandlerRegistry resourceHandlerRegistry = InterceptorSupport.getInstance().getResource();
-            resourceHandlerRegistry.setTempFile(file.getAbsolutePath().replace(path, ""), null);
+//            ResourceHandlerRegistry resourceHandlerRegistry = InterceptorSupport.getInstance().getResource();
+//            resourceHandlerRegistry.setTempFile(file.getAbsolutePath().replace(path, ""), null);
             logger.info("文件删除，更新完成");
         } catch (IOException e) {
             e.printStackTrace();
