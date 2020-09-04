@@ -31,6 +31,8 @@ public class WebAppManager implements Servlet {
 
     public void service(JerryHttpServletRequest request, JerryHttpServletResponse response) throws IOException {
         String url = request.getUri();
+        if (url.endsWith("/favicon.ico"))
+            return;
         //请求前的拦截
         boolean next = Chain.chain(InterceptorSupport.getInstance().getRegistry().getInterceptors(),
                 request,

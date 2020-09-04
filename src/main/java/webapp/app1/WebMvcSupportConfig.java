@@ -38,6 +38,8 @@ public class WebMvcSupportConfig extends WebMvcSupport {
     @Override
     protected void addResource(ResourceHandlerRegistry registry) {
         registry.addResource("/doc/**/*.md");
+        registry.addResource("/html/**/*.js");
+        registry.addResource("/html/**/*.css");
         super.addResource(registry);
     }
 }
