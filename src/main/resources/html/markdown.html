@@ -8,11 +8,115 @@
     <!--<script src="http://cdn.bootcss.com/highlight.js/8.5/highlight.min.js"></script>-->
 
     <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/showdown@1.9.0/dist/showdown.min.js"/>
+    <script src="https://cdn.bootcss.com/marked/0.3.4/marked.min.js"></script>
+    <style>
+        /*
 
-    <script>
-        hljs.initHighlightingOnLoad();
-    </script>
+Intellij Idea-like styling (c) Vasily Polovnyov <vast@whiteants.net>
+
+*/
+
+        .hljs {
+            display: block;
+            overflow-x: auto;
+            padding: 0.5em;
+            color: #000;
+            background: #fff;
+        }
+
+        .hljs-subst,
+        .hljs-title {
+            font-weight: normal;
+            color: #000;
+        }
+
+        .hljs-comment,
+        .hljs-quote {
+            color: #808080;
+            font-style: italic;
+        }
+
+        .hljs-meta {
+            color: #808000;
+        }
+
+        .hljs-tag {
+            background: #efefef;
+        }
+
+        .hljs-section,
+        .hljs-name,
+        .hljs-literal,
+        .hljs-keyword,
+        .hljs-selector-tag,
+        .hljs-type,
+        .hljs-selector-id,
+        .hljs-selector-class {
+            font-weight: bold;
+            color: #000080;
+        }
+
+        .hljs-attribute,
+        .hljs-number,
+        .hljs-regexp,
+        .hljs-link {
+            font-weight: bold;
+            color: #0000ff;
+        }
+
+        .hljs-number,
+        .hljs-regexp,
+        .hljs-link {
+            font-weight: normal;
+        }
+
+        .hljs-string {
+            color: #008000;
+            font-weight: bold;
+        }
+
+        .hljs-symbol,
+        .hljs-bullet,
+        .hljs-formula {
+            color: #000;
+            background: #d0eded;
+            font-style: italic;
+        }
+
+        .hljs-doctag {
+            text-decoration: underline;
+        }
+
+        .hljs-variable,
+        .hljs-template-variable {
+            color: #660e7a;
+        }
+
+        .hljs-addition {
+            background: #baeeba;
+        }
+
+        .hljs-deletion {
+            background: #ffc8bd;
+        }
+
+        .hljs-emphasis {
+            font-style: italic;
+        }
+
+        .hljs-strong {
+            font-weight: bold;
+        }
+
+    </style>
+    <!--<link href="http://127.0.0.1:8090/html/md/default.css" rel="stylesheet">-->
+    <script src="http://cdn.bootcss.com/highlight.js/8.0/highlight.min.js"></script>
+    <style>
+        pre {
+            background-color: rgb(247, 247, 247);
+            padding: 16px;
+        }
+    </style>
 
 </head>
 
@@ -32,8 +136,9 @@
     </div>
 
     <div style="width: 60%">
+        <input id="title" placeholder="文章标题">
         <div style="display: flex;flex-direction: row;width: 100%;min-height: 500px">
-            <textarea id="dirContent" style="width: 50%;;min-height: 500px" onkeyup="convert()"></textarea>
+            <textarea id="dirContent" style="width: 50%;;min-height: 500px"></textarea>
             <div id="result" style="margin-left:5px;border:1px black solid;width: 50%;;min-height: 500px"></div>
         </div>
         <button onclick="edit()">提交</button>
@@ -133,7 +238,7 @@
             data: {
                 "path": editPath,
                 "content": $("#dirContent").val(),
-                "token": $("#token").val()
+                "token": $("#token").val(),
             },
             headers: {
                 'Accept': 'application/json; charset=utf-8',
@@ -185,12 +290,33 @@
     getDir();
 </script>
 <script type="text/javascript">
-    function convert() {
-        var text = document.getElementById("dirContent").value;
-        var converter = new showdown.Converter();
-        var html = converter.makeHtml(text);
-        document.getElementById("result").innerHTML = html;
-    }
+    //    function convert() {
+    //        var text = document.getElementById("dirContent").value;
+    //        var converter = new showdown.Converter();
+    //        var html = converter.makeHtml(text);
+    //        document.getElementById("result").innerHTML = html;
+    //    }
+
+    marked.setOptions({
+        renderer: new marked.Renderer(),
+        gfm: true,
+        tables: true,
+        escaped: true,
+        breaks: false,
+        pedantic: false,
+        sanitize: false,
+        smartLists: true,
+        smartypants: false,
+        highlight: function (code, lang) {
+            // return   hljs.highlight(lang, code, false,true).value;
+            return hljs.highlightAuto(code).value;
+        }
+    });
+
+    $("#dirContent").on("input  propertychange", function () {
+        var val = $(this).val();
+        $("#result").html(marked(val));
+    })
 </script>
 </body>
 </html>
