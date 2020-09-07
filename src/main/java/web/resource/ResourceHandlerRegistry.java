@@ -111,8 +111,9 @@ public class ResourceHandlerRegistry {
 
         String resource = url;
         InputStream inputStream = null;
-        if (resource.startsWith("/"))
+        while (resource.startsWith("/"))
             resource = resource.substring(1);
+        logger.info("请求资源,{}", url);
 //        if (tempFile.containsKey(resource))
 //            return tempFile.get(resource);
         resource = URLDecoder.decode(resource, "UTF-8");
@@ -120,10 +121,19 @@ public class ResourceHandlerRegistry {
             inputStream = Resources.getResourceAsStream(resource);
         } catch (IOException e) {
             String path = Resource.getJerryCfg(PATH);
-            logger.info(path + "/" + resource + ",资源不存在，寻找外部资源");
+
+            String realPath;
+            if (path.endsWith("/") || resource.startsWith("/")) {
+                realPath = path + resource;
+            } else if (path.endsWith("/") && resource.startsWith("/")) {
+                realPath = path + resource.substring(1);
+            } else {
+                realPath = path + "/" + resource;
+            }
+            logger.info(realPath + ",资源不存在，寻找外部资源");
             if (path != null && path != "") {
                 try {
-                    inputStream = new FileInputStream(path + "/" + resource);
+                    inputStream = new FileInputStream(realPath);
                     logger.info("资源存在");
                 } catch (IOException e1) {
                     logger.info("资源不存在，寻找外部资源失败，返回404");
@@ -135,7 +145,7 @@ public class ResourceHandlerRegistry {
             inputStream = Resources.getResourceAsStream(PATH_404);
         }
 
-        File temp = File.createTempFile(resource, Resource.getJerryCfg("md.suffix"));
+        File temp = File.createTempFile(resource, resource.substring(resource.lastIndexOf(".")));
         getTempResource(inputStream, temp);
 //        tempFile.put(resource, temp);
         return temp;
@@ -145,6 +155,10 @@ public class ResourceHandlerRegistry {
         String contentType;
         if (file.getName().endsWith(".md") || file.getName().endsWith(".html")) {
             contentType = "text/html; charset=UTF-8";
+        } else if (file.getName().endsWith(".css")) {
+            contentType = "text/css; charset=UTF-8";
+        } else if (file.getName().endsWith(".js")) {
+            contentType = "application/javascript;charset=utf-8";
         } else {
             contentType = "text/json; charset=UTF-8";
         }

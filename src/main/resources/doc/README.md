@@ -10,9 +10,9 @@ Git地址:https://github.com/xynuSuMu/jerry
 
 * 小程序:每天学Java
 
-* 个人文章网站:http://www.study-java.cn:8090/doc
+* 个人文章网站:http://www.study-java.cn/v2/doc
 
-* 个人文章后台:http://www.study-java.cn:8090/index.htm
+* 个人文章后台:http://www.study-java.cn/v2/index.htm
 
 #### 实现的功能:
 

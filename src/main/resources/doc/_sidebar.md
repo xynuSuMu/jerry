@@ -1,5 +1,5 @@
 ### Java基础
-* [线程](directory/javaBase/Threed)
+* [线程](directory/javaBase/Thread)
 * [集合](directory/javaBase/Collection)
 * [网络](directory/javaBase/Network)
 * [IO](directory/javaBase/IO)
