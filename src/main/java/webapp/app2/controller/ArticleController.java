@@ -24,8 +24,18 @@ public class ArticleController {
         return "directory.html";
     }
 
+    @JerryRequestMapping(value = "/doc/interview/directory", method = RequestMethod.GET)
+    public String getInterViewDirectory() {
+        return "interViewDir.html";
+    }
+
     @JerryRequestMapping(value = "/doc/content", method = RequestMethod.GET)
     public String getContent() {
         return "markdown.html";
+    }
+
+    @JerryRequestMapping(value = "/doc/interview/content", method = RequestMethod.GET)
+    public String getInterVieContent() {
+        return "interViewMD.html";
     }
 }
