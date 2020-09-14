@@ -159,6 +159,8 @@ public class ResourceHandlerRegistry {
             contentType = "text/css; charset=UTF-8";
         } else if (file.getName().endsWith(".js")) {
             contentType = "application/javascript;charset=utf-8";
+        } else if (file.getName().endsWith(".png")) {
+            contentType = "image/png";
         } else {
             contentType = "text/json; charset=UTF-8";
         }

@@ -129,7 +129,13 @@ Intellij Idea-like styling (c) Vasily Polovnyov <vast@whiteants.net>
         <input id="name">
         <button onclick="createArticle()">创建文章</button>
     </div>
+    <form id="fileForm" name="fileForm" action="#" method="post" enctype="multipart/form-data">
+        <input type="file" name="file">
+        <input type="button" value="提交图片">
+    </form>
+    <div id="imageRes"></div>
 </div>
+
 <div class="container" style="display: flex;flex-direction: row;">
 
     <div id="dir" style="width: 30%">
@@ -283,6 +289,32 @@ Intellij Idea-like styling (c) Vasily Polovnyov <vast@whiteants.net>
             $("#subSub" + index).hide();
     }
 
+    $("#fileForm input[type='button']").click(function () {
+        /**
+         * 特别注意：fileForm指的是form表单属性name的值
+         * file是指input控件的name
+         * */
+        var file = document.fileForm.file.files[0];
+        //ormData是Html5新加进来的一个类,可以模拟表单数据
+        var fm = new FormData();
+        fm.append('image', file);
+        fm.append('token', $("#token").val())
+        //进行Ajax请求
+        $.ajax({
+            //几个参数需要注意一下
+            type: "POST",//方法类型
+            url: SERVER_URL + "/image/createImage",//url
+            data: fm,
+            async: false,
+            cache: false,
+            contentType: false, //禁止设置请求类型
+            processData: false, //禁止jquery对DAta数据的处理,默认会处理
+            success: function (p) {
+                console.log(p)
+                $("#imageRes").html(p);
+            }
+        });
+    });
 
 </script>
 <script>

@@ -40,6 +40,7 @@ public class WebMvcSupportConfig extends WebMvcSupport {
         registry.addResource("/doc/**/*.md");
         registry.addResource("/html/**/*.js");
         registry.addResource("/html/**/*.css");
+        registry.addResource("/image/**/*.png");
         super.addResource(registry);
     }
 }
