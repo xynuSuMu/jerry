@@ -1,4 +1,7 @@
+* [知识目录](directory/javaBase/KnowLedge)
+
 ### Java基础
+* [运算/流程](directory/javaBase/BitAndWorkFlow)
 * [线程](directory/javaBase/Thread)
 * [集合](directory/javaBase/Collection)
 * [网络](directory/javaBase/Network)
@@ -8,6 +11,7 @@
 
 * [常见需求的实现](directory/usingJava/UseClass)
 * [设计模式的运用](directory/usingJava/Pattern)
+* [大数据相关](directory/usingJava/DataHandler)
 
 ### Java底层
 
@@ -24,6 +28,7 @@
 
 ### 算法
 * [经典算法](directory/algorithm/Base)
+* [LeetCode](directory/algorithm/LC)
 * [PAT](directory/algorithm/PAT)
 
 ### 信息学奥赛
