@@ -1,6 +1,5 @@
-* [知识目录](directory/javaBase/KnowLedge)
-
 ### Java基础
+* [JDK](directory/javaBase/JDK)
 * [运算/流程](directory/javaBase/BitAndWorkFlow)
 * [线程](directory/javaBase/Thread)
 * [集合](directory/javaBase/Collection)
