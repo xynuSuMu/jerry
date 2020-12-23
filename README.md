@@ -1,16 +1,15 @@
+
+* 个人文章网站:http://www.study-java.cn/v2/doc
+
+* 表单建模:https://github.com/xynuSuMu/formModeling
+
+* 分布式任务调度：https://github.com/xynuSuMu/job
+
 # Jerry
 
 #### 背景
 
 模拟Spring开发个人应用框架，为个人的小程序和网站的搭建提供接口
-
-* 公众号:每天学Java
-
-* 小程序:每天学Java
-
-* 个人文章网站:http://www.study-java.cn/v2/doc
-
-* 个人文章后台:http://www.study-java.cn/v2/index.htm
 
 #### 实现的功能:
 
